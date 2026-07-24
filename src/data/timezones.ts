@@ -1,0 +1,37 @@
+export const timezoneOptions = [
+  { timezone: "America/Los_Angeles", label: "Los Angeles", keywords: "pacific california pst pdt" },
+  { timezone: "America/Denver", label: "Denver", keywords: "mountain mst mdt" },
+  { timezone: "America/Chicago", label: "Chicago", keywords: "central cst cdt" },
+  { timezone: "America/New_York", label: "New York", keywords: "eastern est edt" },
+  { timezone: "America/Toronto", label: "Toronto", keywords: "canada eastern" },
+  { timezone: "America/Mexico_City", label: "Mexico City", keywords: "mexico central" },
+  { timezone: "America/Sao_Paulo", label: "Sao Paulo", keywords: "brazil" },
+  { timezone: "UTC", label: "UTC", keywords: "gmt zulu universal" },
+  { timezone: "Europe/London", label: "London", keywords: "uk gmt bst" },
+  { timezone: "Europe/Paris", label: "Paris", keywords: "france cet cest" },
+  { timezone: "Europe/Berlin", label: "Berlin", keywords: "germany cet cest" },
+  { timezone: "Europe/Madrid", label: "Madrid", keywords: "spain cet cest" },
+  { timezone: "Europe/Rome", label: "Rome", keywords: "italy cet cest" },
+  { timezone: "Europe/Amsterdam", label: "Amsterdam", keywords: "netherlands cet cest" },
+  { timezone: "Europe/Stockholm", label: "Stockholm", keywords: "sweden cet cest" },
+  { timezone: "Europe/Warsaw", label: "Warsaw", keywords: "poland cet cest" },
+  { timezone: "Europe/Istanbul", label: "Istanbul", keywords: "turkey trt eet eest" },
+  { timezone: "Africa/Cairo", label: "Cairo", keywords: "egypt eet eest" },
+  { timezone: "Africa/Johannesburg", label: "Johannesburg", keywords: "south africa" },
+  { timezone: "Asia/Dubai", label: "Dubai", keywords: "uae gulf" },
+  { timezone: "Asia/Kolkata", label: "Mumbai", keywords: "india delhi ist" },
+  { timezone: "Asia/Bangkok", label: "Bangkok", keywords: "thailand" },
+  { timezone: "Asia/Ho_Chi_Minh", label: "Ho Chi Minh City", keywords: "vietnam hanoi" },
+  { timezone: "Asia/Singapore", label: "Singapore", keywords: "sgt" },
+  { timezone: "Asia/Hong_Kong", label: "Hong Kong", keywords: "hkt" },
+  { timezone: "Asia/Shanghai", label: "Shanghai", keywords: "china beijing cst" },
+  { timezone: "Asia/Seoul", label: "Seoul", keywords: "korea kst" },
+  { timezone: "Asia/Tokyo", label: "Tokyo", keywords: "japan jst" },
+  { timezone: "Australia/Perth", label: "Perth", keywords: "western australia" },
+  { timezone: "Australia/Sydney", label: "Sydney", keywords: "australia aest aedt" },
+  { timezone: "Pacific/Auckland", label: "Auckland", keywords: "new zealand nzdt nzst" },
+];
+
+export function getTimezoneLabel(timezone: string) {
+  return timezoneOptions.find((option) => option.timezone === timezone)?.label ?? timezone.split("/").pop()?.replaceAll("_", " ") ?? timezone;
+}
