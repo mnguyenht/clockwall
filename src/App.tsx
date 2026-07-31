@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
 import { ClockWall } from "./components/ClockWall";
@@ -24,6 +25,8 @@ function getDigitalContrast(glow: string) {
   };
 }
 
+const TOAST_DURATION_MS = 6200;
+
 export function App() {
   const now = useNow();
   const [clockDialogOpen, setClockDialogOpen] = useState(false);
@@ -31,7 +34,7 @@ export function App() {
   const [selectedClockIds, setSelectedClockIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [toast, setToast] = useState<{ title: string; message: string } | null>(null);
+  const [toast, setToast] = useState<{ title: string; message: ReactNode } | null>(null);
   const {
     state,
     activeBoard,
@@ -105,7 +108,7 @@ export function App() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => setToast(null), 4200);
+    const timeoutId = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
     return () => window.clearTimeout(timeoutId);
   }, [toast]);
 
@@ -130,6 +133,20 @@ export function App() {
         onSearchOpenChange={setSearchOpen}
         onSearchQueryChange={setSearchQuery}
         onExportBoard={exportActiveBoardDeck}
+        onExportStarted={() => {
+          setToast({
+            title: "Clock export downloaded",
+            message: (
+              <>
+                Your clock export was downloaded. We recommend uploading it to{" "}
+                <a href="https://drive.google.com/" target="_blank" rel="noreferrer">
+                  Google Drive
+                </a>{" "}
+                for safekeeping.
+              </>
+            ),
+          });
+        }}
         onImportBoard={importBoardDeck}
       />
       <ClockWall
@@ -184,12 +201,17 @@ export function App() {
           addClock(clockValues);
         }}
       />
-      {toast ? (
-        <div className="app-toast app-toast--center" role="status" aria-live="polite">
-          <strong>{toast.title}</strong>
-          <span>{toast.message}</span>
-        </div>
-      ) : null}
+      {toast
+        ? createPortal(
+            <div className={`app-toast-layer app-shell--${theme}`} style={appStyle}>
+              <div className="app-toast app-toast--center" role="status" aria-live="polite">
+                <strong>{toast.title}</strong>
+                <span>{toast.message}</span>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

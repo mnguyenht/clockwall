@@ -34,6 +34,7 @@ type AppControlsProps = {
   onSearchOpenChange: (open: boolean) => void;
   onSearchQueryChange: (query: string) => void;
   onExportBoard: () => BoardDeckExport;
+  onExportStarted: () => void;
   onImportBoard: (raw: string) => void;
 };
 
@@ -61,6 +62,7 @@ export function AppControls({
   onSearchOpenChange,
   onSearchQueryChange,
   onExportBoard,
+  onExportStarted,
   onImportBoard,
 }: AppControlsProps) {
   const isAnalog = theme === "hotel-analog";
@@ -115,8 +117,14 @@ export function AppControls({
 
     link.href = url;
     link.download = `${safeName}-clockwall.json`;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+
+    window.requestAnimationFrame(() => {
+      onExportStarted();
+      URL.revokeObjectURL(url);
+    });
   }
 
   async function importBoard(event: ChangeEvent<HTMLInputElement>) {
