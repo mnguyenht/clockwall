@@ -1599,9 +1599,16 @@ select {
   font-weight: 700;
 }
 
+.app-toast-layer {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background-color: transparent;
+  pointer-events: none;
+}
+
 .app-toast {
   position: fixed;
-  z-index: 90;
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   width: min(360px, calc(100vw - 32px));
@@ -1611,6 +1618,7 @@ select {
   box-shadow: 0 20px 56px rgba(24, 22, 18, 0.22);
   color: var(--control-text);
   padding: 14px 16px;
+  pointer-events: auto;
   transform: translateX(-50%);
   animation: app-toast-pop 6200ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
