@@ -14,6 +14,7 @@
   --control-shadow: 0 12px 28px rgba(44, 38, 30, 0.12);
   --accent: #26231e;
   --accent-contrast: #fffaf1;
+  --availability-ink: rgb(39, 115, 95);
 }
 
 * {
@@ -583,15 +584,19 @@ select {
 }
 
 .analog-clock__availability-sector--active {
-  fill: rgba(39, 115, 95, 0.34);
-  stroke: none;
+  fill: var(--availability-ink);
+  stroke: var(--availability-ink);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  opacity: 0.34;
 }
 
 .analog-clock__availability-sector--outline {
   fill: none;
-  stroke: rgba(39, 115, 95, 0.34);
+  stroke: var(--availability-ink);
   stroke-width: 2.5px;
   stroke-linejoin: round;
+  opacity: 0.34;
 }
 
 .analog-clock__mark {
@@ -1470,6 +1475,10 @@ select {
 .timezone-option:hover,
 .timezone-option--active {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.timezone-option--highlighted {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .timezone-option > span:first-child {

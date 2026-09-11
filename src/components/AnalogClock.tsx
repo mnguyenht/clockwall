@@ -15,7 +15,10 @@ type AnalogClockProps = {
 
 const AVAILABILITY_CENTER = 77;
 const AVAILABILITY_RADIUS = 62;
-const AVAILABILITY_BAND = 9;
+// The filled sector is drawn with a 4-unit round-joined stroke of its own colour to
+// round the corners, and the stroke straddles the path, so the path band is 4 units
+// narrower than the 9 units the sector actually covers.
+const AVAILABILITY_BAND = 5;
 
 function ringSectorPath(startAngle: number, sizeAngle: number) {
   const inner = AVAILABILITY_RADIUS - AVAILABILITY_BAND / 2;
