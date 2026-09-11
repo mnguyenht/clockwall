@@ -124,18 +124,10 @@ select {
 
 .app-shell--dark-digital::after {
   opacity: 1;
-  --bg-pattern-glow: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--digital-glow) var(--bg-pattern-tint), transparent)
-      calc(var(--bg-pattern-opacity) * 100%),
-    transparent
-  );
-  --bg-pattern-accent: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--digital-accent) var(--bg-pattern-tint), transparent)
-      calc(var(--bg-pattern-opacity) * 100%),
-    transparent
-  );
+  --bg-pattern-hue: color-mix(in srgb, var(--digital-glow) var(--bg-pattern-tint), #cfeee6);
+  --bg-pattern-hue-accent: color-mix(in srgb, var(--digital-accent) var(--bg-pattern-tint), #cfeee6);
+  --bg-pattern-glow: color-mix(in srgb, var(--bg-pattern-hue) calc(var(--bg-pattern-opacity) * 100%), transparent);
+  --bg-pattern-accent: color-mix(in srgb, var(--bg-pattern-hue-accent) calc(var(--bg-pattern-opacity) * 100%), transparent);
   background:
     radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
     radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
@@ -149,7 +141,12 @@ select {
     radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
     radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
     linear-gradient(180deg, #05090b 0%, #020405 100%);
-  background-size: var(--bg-pattern-size), auto, auto, auto;
+  background-size: var(--bg-pattern-size) var(--bg-pattern-size), auto, auto, auto;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  animation-name: background-pan-dots;
+  animation-duration: var(--bg-motion);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .app-shell--dark-digital[data-bg="grid"]::after {
@@ -159,7 +156,15 @@ select {
     radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
     radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
     linear-gradient(180deg, #05090b 0%, #020405 100%);
-  background-size: var(--bg-pattern-size), var(--bg-pattern-size), auto, auto, auto;
+  background-size:
+    var(--bg-pattern-size) var(--bg-pattern-size),
+    var(--bg-pattern-size) var(--bg-pattern-size),
+    auto, auto, auto;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+  animation-name: background-pan-grid;
+  animation-duration: var(--bg-motion);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .app-shell--dark-digital[data-bg="aurora"]::after {
@@ -2169,23 +2174,36 @@ select {
 
 @keyframes background-drift {
   from {
-    opacity: 0.9;
-    transform: scale(1.02) translate3d(-0.6%, -0.4%, 0);
+    transform: scale(1.08) translate3d(-3%, -2%, 0);
   }
   to {
-    opacity: 1;
-    transform: scale(1.04) translate3d(0.6%, 0.4%, 0);
+    transform: scale(1.08) translate3d(3%, 2%, 0);
+  }
+}
+
+/* Pans the pattern by exactly one tile so the loop is seamless; every other layer is
+   pinned at 0 0 so only the pattern moves. */
+@keyframes background-pan-dots {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: var(--bg-pattern-size) var(--bg-pattern-size), 0 0, 0 0, 0 0; }
+}
+
+@keyframes background-pan-grid {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to {
+    background-position:
+      var(--bg-pattern-size) var(--bg-pattern-size),
+      var(--bg-pattern-size) var(--bg-pattern-size),
+      0 0, 0 0, 0 0;
   }
 }
 
 @keyframes background-breathe {
   from {
-    opacity: 0.86;
-    transform: scale(1.01);
+    transform: scale(1);
   }
   to {
-    opacity: 1;
-    transform: scale(1.045);
+    transform: scale(1.12);
   }
 }
 
@@ -2256,6 +2274,9 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-shell--dark-digital:not([data-bg])::after,
+  .app-shell--dark-digital[data-bg="dots"]::after,
+  .app-shell--dark-digital[data-bg="grid"]::after,
   .app-shell--dark-digital[data-bg="aurora"]::after,
   .app-shell--dark-digital[data-bg="gradient"]::after {
     animation: none;
