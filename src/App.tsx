@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
@@ -10,7 +11,8 @@ import { useNow } from "./hooks/useNow";
 import { getAvailabilityDurationMinutes } from './lib/time';
 import type { Clock } from "./types";
 
-const digitalContrastPresets: Record<string, { time: string; indicator: string }> = {
+// Pre-2026-09 contrast palette kept for one-line revert.
+export const legacyDigitalContrastPresets: Record<string, { time: string; indicator: string }> = {
   "#21917e": { time: "#8ff2df", indicator: "#38c99d" },
   "#2d8ca4": { time: "#92e7f5", indicator: "#36b9d8" },
   "#4d74b8": { time: "#adcaff", indicator: "#6d95e8" },
@@ -19,10 +21,19 @@ const digitalContrastPresets: Record<string, { time: string; indicator: string }
   "#a9832f": { time: "#f5d77d", indicator: "#dda83e" },
 };
 
+const digitalContrastPresets: Record<string, { time: string; indicator: string }> = {
+  "#17c1a0": { time: "#8ff2df", indicator: "#38d9b4" },
+  "#22b8d8": { time: "#9be9f7", indicator: "#45c9e6" },
+  "#5b8cff": { time: "#c2d6ff", indicator: "#7fa5ff" },
+  "#a06bff": { time: "#ddc9ff", indicator: "#b98cff" },
+  "#ff5f9e": { time: "#ffc2d9", indicator: "#ff7fb0" },
+  "#ffb224": { time: "#ffe0a3", indicator: "#ffc44d" },
+};
+
 function getDigitalContrast(glow: string) {
   return digitalContrastPresets[glow.toLowerCase()] ?? {
     time: "#8ff2df",
-    indicator: "#38c99d",
+    indicator: "#38d9b4",
   };
 }
 
@@ -46,6 +57,7 @@ export function App() {
     setDarkGlow,
     setPrimaryTimezone,
     setAwakeHours,
+    setDefaultNameMode,
     addClock,
     updateClock,
     deleteClock,
@@ -126,7 +138,8 @@ export function App() {
   }, [toast]);
 
   return (
-    <div className={`app-shell app-shell--${theme}`} style={appStyle}>
+    <LazyMotion features={domAnimation} strict>
+      <div className={`app-shell app-shell--${theme}`} style={appStyle}>
       <AppControls
         boards={state.boards}
         activeBoardId={activeBoard.id}
@@ -135,6 +148,7 @@ export function App() {
         primaryTimezone={state.settings.primaryTimezone}
         awakeStart={state.settings.awakeStart}
         awakeEnd={state.settings.awakeEnd}
+        defaultNameMode={state.settings.defaultNameMode}
         onBoardChange={setActiveBoardId}
         onThemeChange={setTheme}
         onCreateBoard={createBoard}
@@ -143,6 +157,7 @@ export function App() {
         onDarkGlowChange={setDarkGlow}
         onPrimaryTimezoneChange={setPrimaryTimezone}
         onAwakeHoursChange={setAwakeHours}
+        onDefaultNameModeChange={setDefaultNameMode}
         onAddClock={openAddClock}
         searchQuery={searchQuery}
         searchOpen={searchOpen}
@@ -182,25 +197,30 @@ export function App() {
         selectedClockIds={selectedClockIds}
         onToggleClockSelection={toggleClockSelection}
       />
-      <SelectionBar
-        count={selectedClockIds.length}
-        onPin={() => {
-          setClocksPinned(selectedClockIds, true);
-          setSelectedClockIds([]);
-        }}
-        onUnpin={() => {
-          setClocksPinned(selectedClockIds, false);
-          setSelectedClockIds([]);
-        }}
-        onDelete={() => {
-          deleteClocks(selectedClockIds);
-          setSelectedClockIds([]);
-        }}
-        onClear={() => setSelectedClockIds([])}
-      />
+      <AnimatePresence>
+        {selectedClockIds.length > 0 ? (
+          <SelectionBar
+            count={selectedClockIds.length}
+            onPin={() => {
+              setClocksPinned(selectedClockIds, true);
+              setSelectedClockIds([]);
+            }}
+            onUnpin={() => {
+              setClocksPinned(selectedClockIds, false);
+              setSelectedClockIds([]);
+            }}
+            onDelete={() => {
+              deleteClocks(selectedClockIds);
+              setSelectedClockIds([]);
+            }}
+            onClear={() => setSelectedClockIds([])}
+          />
+        ) : null}
+      </AnimatePresence>
       <ClockFormDialog
         open={clockDialogOpen}
         clock={editingClock}
+        defaultNameMode={state.settings.defaultNameMode}
         onOpenChange={setClockDialogOpen}
         onSave={(values, clockId) => {
           const workHours = values.workHoursEnabled
@@ -245,6 +265,7 @@ export function App() {
             document.body,
           )
         : null}
-    </div>
+      </div>
+    </LazyMotion>
   );
 }

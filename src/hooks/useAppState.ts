@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { defaultState } from "../data/defaultState";
-import type { AppState, BoardDeckExport, Clock, ThemeMode } from "../types";
+import type { AppState, BoardDeckExport, Clock, ClockNameMode, ThemeMode } from "../types";
 
 const STORAGE_KEY = "clockwall:v1";
 
@@ -203,6 +203,16 @@ export function useAppState() {
         ...current.settings,
         awakeStart,
         awakeEnd,
+      },
+    }));
+  }
+
+  function setDefaultNameMode(defaultNameMode: ClockNameMode) {
+    setState((current) => ({
+      ...current,
+      settings: {
+        ...current.settings,
+        defaultNameMode,
       },
     }));
   }
@@ -420,6 +430,7 @@ export function useAppState() {
     setDarkGlow,
     setPrimaryTimezone,
     setAwakeHours,
+    setDefaultNameMode,
     addClock,
     updateClock,
     deleteClock,

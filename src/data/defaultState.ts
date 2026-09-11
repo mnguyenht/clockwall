@@ -5,11 +5,12 @@ export const defaultState: AppState = {
   settings: {
     displaySeconds: true,
     lightBackground: "#f7f6f2",
-    darkGlow: "#21917e",
+    darkGlow: "#17c1a0",
     primaryTimezone: "Asia/Bangkok",
     theme: "hotel-analog",
     awakeStart: "06:00",
     awakeEnd: "22:00",
+    defaultNameMode: "location",
   },
   boards: [
     {

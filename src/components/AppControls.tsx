@@ -1,6 +1,6 @@
 import { Download, Moon, Plus, Search, Settings, SunMedium, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
-import type { Board, BoardDeckExport, ThemeMode } from "../types";
+import type { Board, BoardDeckExport, ClockNameMode, ThemeMode } from "../types";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -13,8 +13,9 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { GlowPaletteControl } from "./GlowPaletteControl";
+import { NameModeGroup } from "./NameModeGroup";
+import { TimeRangeField } from "./TimeRangeField";
 import { TimezonePicker } from "./TimezonePicker";
-import { TimeStepperField } from "./ClockFormDialog";
 
 type AppControlsProps = {
   boards: Board[];
@@ -25,6 +26,7 @@ type AppControlsProps = {
   primaryTimezone: string;
   awakeStart: string;
   awakeEnd: string;
+  defaultNameMode: ClockNameMode;
   searchQuery: string;
   searchOpen: boolean;
   onBoardChange: (boardId: string) => void;
@@ -34,6 +36,7 @@ type AppControlsProps = {
   onDarkGlowChange: (color: string) => void;
   onPrimaryTimezoneChange: (timezone: string) => void;
   onAwakeHoursChange: (start: string, end: string) => void;
+  onDefaultNameModeChange: (nameMode: ClockNameMode) => void;
   onAddClock: () => void;
   onSearchOpenChange: (open: boolean) => void;
   onSearchQueryChange: (query: string) => void;
@@ -56,6 +59,7 @@ export function AppControls({
   primaryTimezone,
   awakeStart,
   awakeEnd,
+  defaultNameMode,
   searchQuery,
   searchOpen,
   onBoardChange,
@@ -65,6 +69,7 @@ export function AppControls({
   onDarkGlowChange,
   onPrimaryTimezoneChange,
   onAwakeHoursChange,
+  onDefaultNameModeChange,
   onAddClock,
   onSearchOpenChange,
   onSearchQueryChange,
@@ -282,7 +287,7 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row">
+              <div className="settings-row settings-row--stacked">
                 <div className="settings-row__copy">
                   <Label>Main timezone</Label>
                   <p>Your central reference clock for availability.</p>
@@ -295,30 +300,37 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row">
+              <div className="settings-row settings-row--stacked">
                 <div className="settings-row__copy">
                   <Label>Awake hours</Label>
                   <p>Outside these hours availability shows as an outline.</p>
                 </div>
-                <div className="time-range-fields">
-                  <TimeStepperField
-                    label="Start"
-                    value={awakeStart}
-                    onChange={(start) => onAwakeHoursChange(start, awakeEnd)}
-                  />
-                  <TimeStepperField
-                    label="End"
-                    value={awakeEnd}
-                    onChange={(end) => onAwakeHoursChange(awakeStart, end)}
-                  />
-                </div>
+                <TimeRangeField
+                  start={awakeStart}
+                  end={awakeEnd}
+                  onChange={onAwakeHoursChange}
+                  idPrefix="awake-hours"
+                />
               </div>
 
-              <div className="settings-row">
+              <div className="settings-row settings-row--stacked">
                 <div className="settings-row__copy">
                   <Label htmlFor="dark-glow">Digital glow</Label>
                 </div>
                 <GlowPaletteControl value={darkGlow} onChange={onDarkGlowChange} />
+              </div>
+
+              <div className="settings-row settings-row--stacked">
+                <div className="settings-row__copy">
+                  <Label>Default name style</Label>
+                  <p>Used when adding a new clock.</p>
+                </div>
+                <NameModeGroup
+                  value={defaultNameMode}
+                  onChange={onDefaultNameModeChange}
+                  previewTimezone={primaryTimezone}
+                  layoutIdSuffix="settings"
+                />
               </div>
 
               <div className="settings-row">

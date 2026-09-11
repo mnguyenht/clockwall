@@ -45,5 +45,6 @@ export type AppState = {
     theme: ThemeMode;
     awakeStart: string;
     awakeEnd: string;
+    defaultNameMode: ClockNameMode;
   };
 };
