@@ -42,7 +42,11 @@ function timeToMinutes(value: string) {
 }
 
 function isValidTimeValue(value: string) {
-  return /^\d{2}:\d{2}$/.test(value);
+  if (!/^\d{2}:\d{2}$/.test(value)) {
+    return false;
+  }
+  const [hour, minute] = value.split(':').map(Number);
+  return hour >= 0 && hour < 24 && minute >= 0 && minute < 60;
 }
 
 export function getAvailabilityDurationMinutes(workHours: Clock["workHours"]) {
@@ -85,6 +89,28 @@ export function getAvailabilityStatus(dateTime: DateTime, workHours: Clock["work
     label: available ? `Available until ${workHours.end}` : `Available at ${workHours.start}`,
     detail: `${workHours.start}-${workHours.end}`,
   };
+}
+
+export function findAvailabilityOverlaps(
+  clocks: Clock[], now: Date, primaryTimezone: string,
+): Array<{ startMinutes: number; endMinutes: number }> {
+  const considered = clocks.filter((clock) => clock.workHours?.enabled && isValidTimeValue(clock.workHours.start) && isValidTimeValue(clock.workHours.end));
+  if (considered.length < 2) return [];
+  const overlaps: Array<{ startMinutes: number; endMinutes: number }> = [];
+  let runStart: number | null = null;
+  for (let minutes = 0; minutes <= 1440; minutes += 15) {
+    const instant = new Date(now.getTime() + minutes * 60000);
+    const everyoneAvailable = minutes < 1440 && considered.every((clock) => {
+      const timezone = clock.workHours?.basis === 'primary' ? primaryTimezone : clock.timezone;
+      return getAvailabilityStatus(getClockDateTime(instant, timezone), clock.workHours)?.available === true;
+    });
+    if (everyoneAvailable && runStart === null) runStart = minutes;
+    else if (!everyoneAvailable && runStart !== null) {
+      if (minutes - runStart >= 30) overlaps.push({ startMinutes: runStart, endMinutes: minutes });
+      runStart = null;
+    }
+  }
+  return overlaps;
 }
 
 function dateTimeWithTime(dateTime: DateTime, value: string) {

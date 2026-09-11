@@ -1,10 +1,14 @@
 import { DateTime } from "luxon";
 
+import { useRef } from 'react';
+
 const minorHourMarks = [1, 2, 4, 5, 7, 8, 10, 11];
 
 type AnalogClockProps = {
   dateTime: DateTime;
   displaySeconds: boolean;
+  offsetMinutes: number;
+  settling: boolean;
   period: "AM" | "PM";
   availabilityArcs?: Array<{
     startAngle: number;
@@ -49,15 +53,25 @@ function ringSectorPath(startAngle: number, sizeAngle: number) {
   ].join(" ");
 }
 
-export function AnalogClock({ dateTime, displaySeconds, period, availabilityArcs = [] }: AnalogClockProps) {
+function useContinuousAngle(target: number) {
+  const last = useRef(target);
+  const lastAngle = ((last.current % 360) + 360) % 360;
+  const delta = ((target - lastAngle + 540) % 360) - 180;
+  last.current += delta;
+  return last.current;
+}
+
+export function AnalogClock({
+  dateTime, displaySeconds, period, offsetMinutes, settling, availabilityArcs = [],
+}: AnalogClockProps) {
   const hour = dateTime.hour % 12;
   const minute = dateTime.minute;
   const second = dateTime.second;
-  const hourRotation = hour * 30 + minute * 0.5;
-  const minuteRotation = minute * 6 + second * 0.1;
+  const hourRotation = useContinuousAngle(hour * 30 + minute * 0.5);
+  const minuteRotation = useContinuousAngle(minute * 6 + second * 0.1);
   const secondRotation = second * 6;
   return (
-    <div className={`analog-clock analog-clock--${period.toLowerCase()}`} aria-hidden="true">
+    <div className={`analog-clock analog-clock--${period.toLowerCase()} ${settling ? 'analog-clock--settling' : ''}`} aria-hidden='true'>
       {availabilityArcs.length > 0 ? (
         <svg className="analog-clock__availability" viewBox="0 0 154 154">
           {availabilityArcs.map((arc, index) => (
@@ -88,7 +102,7 @@ export function AnalogClock({ dateTime, displaySeconds, period, availabilityArcs
         className="analog-clock__hand analog-clock__hand--minute"
         style={{ transform: `translateX(-50%) rotate(${minuteRotation}deg)` }}
       />
-      {displaySeconds ? (
+      {displaySeconds && offsetMinutes === 0 ? (
         <span
           className="analog-clock__hand analog-clock__hand--second"
           style={{ transform: `translateX(-50%) rotate(${secondRotation}deg)` }}

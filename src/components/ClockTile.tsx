@@ -22,6 +22,8 @@ type ClockTileProps = {
   displaySeconds: boolean;
   primaryTimezone: string;
   awakeHours: { start: string; end: string };
+  offsetMinutes: number;
+  settling: boolean;
   onEdit: (clock: Clock) => void;
   onDuplicate: (clockId: string) => void;
   onDelete: (clockId: string) => void;
@@ -40,6 +42,8 @@ export function ClockTile({
   displaySeconds,
   primaryTimezone,
   awakeHours,
+  offsetMinutes,
+  settling,
   onEdit,
   onDuplicate,
   onDelete,
@@ -50,10 +54,11 @@ export function ClockTile({
   selected,
   onToggleSelected,
 }: ClockTileProps) {
-  const dateTime = getClockDateTime(now, clock.timezone);
+  const shiftedNow = new Date(now.getTime() + offsetMinutes * 60000);
+  const dateTime = getClockDateTime(shiftedNow, clock.timezone);
   const primaryName = getClockPrimaryName(clock, dateTime);
   const timezoneCode = getTimezoneCode(dateTime);
-  const primaryDateTime = getClockDateTime(now, primaryTimezone);
+  const primaryDateTime = getClockDateTime(shiftedNow, primaryTimezone);
   const dayStatus = getDayStatus(dateTime);
   const dayPeriod: "AM" | "PM" = dateTime.hour < 12 ? "AM" : "PM";
   const isDaytime = dateTime.hour >= 6 && dateTime.hour < 18;
@@ -75,7 +80,7 @@ export function ClockTile({
   const content =
     theme === "dark-digital" ? (
       <article
-        className={`clock-tile clock-tile--digital ${selected ? "clock-tile--selected" : ""}`}
+        className={`clock-tile clock-tile--digital ${selected ? 'clock-tile--selected' : ''} ${settling ? 'clock-tile--settling' : ''}`}
         onClick={handleClick}
       >
         <div className="clock-tile__meta">
@@ -111,7 +116,7 @@ export function ClockTile({
       </article>
     ) : (
       <article
-        className={`clock-tile clock-tile--analog ${selected ? "clock-tile--selected" : ""}`}
+        className={`clock-tile clock-tile--analog ${selected ? 'clock-tile--selected' : ''} ${settling ? 'clock-tile--settling' : ''}`}
         onClick={handleClick}
       >
         {clock.pinned ? <Pin className="clock-pin-corner" size={15} /> : null}
@@ -119,6 +124,8 @@ export function ClockTile({
           dateTime={dateTime}
           displaySeconds={displaySeconds}
           period={dayPeriod}
+          offsetMinutes={offsetMinutes}
+          settling={settling}
           availabilityArcs={availabilityArcs}
         />
         <div className="clock-label">

@@ -30,6 +30,8 @@ type ClockWallProps = {
   displaySeconds: boolean;
   primaryTimezone: string;
   awakeHours: { start: string; end: string };
+  offsetMinutes: number;
+  settling: boolean;
   onEditClock: (clock: Clock) => void;
   onDuplicateClock: (clockId: string) => void;
   onDeleteClock: (clockId: string) => void;
@@ -48,6 +50,8 @@ export function ClockWall({
   displaySeconds,
   primaryTimezone,
   awakeHours,
+  offsetMinutes,
+  settling,
   onEditClock,
   onDuplicateClock,
   onDeleteClock,
@@ -156,7 +160,7 @@ export function ClockWall({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
-        <main className={`clock-wall clock-wall--${theme} ${searchActive ? "clock-wall--searching" : ""}`} aria-label={`${board.name} clocks`}>
+        <main className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''} ${offsetMinutes !== 0 ? 'clock-wall--preview' : ''}`} aria-label={`${board.name} clocks`}>
           {visibleClocks.map((clock) => {
             const clockIndex = board.clocks.findIndex((candidate) => candidate.id === clock.id);
             return (
@@ -168,6 +172,8 @@ export function ClockWall({
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
                 awakeHours={awakeHours}
+                offsetMinutes={offsetMinutes}
+                settling={settling}
                 onEdit={onEditClock}
                 onDuplicate={onDuplicateClock}
                 onDelete={onDeleteClock}
