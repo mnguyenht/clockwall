@@ -13,7 +13,7 @@ const nameModes = ["location", "location-code", "code"] as const;
 
 export function NameModeGroup({ value, onChange, previewTimezone }: NameModeGroupProps) {
   const shouldReduceMotion = useReducedMotion();
-  const activeIndex = nameModes.indexOf(value);
+  const activeIndex = Math.max(0, nameModes.indexOf(value));
   const hasTimezone = Boolean(previewTimezone);
   const locationPreview = previewTimezone ? getTimezoneLabel(previewTimezone) : "Location";
   const codePreview = previewTimezone ? getOffsetCode(DateTime.local().setZone(previewTimezone)) : "Code";
@@ -26,14 +26,12 @@ export function NameModeGroup({ value, onChange, previewTimezone }: NameModeGrou
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 420, damping: 30 };
 
+
   return (
     <div className="name-mode-group" role="radiogroup" aria-label="Name style">
-      <m.span
+      <span
         className="name-mode-group__pill"
-        animate={{ x: `calc(${activeIndex * 100}% + ${activeIndex * 6}px)` }}
-        transition={
-          shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }
-        }
+        style={{ transform: `translateX(${activeIndex * 100}%)` }}
         aria-hidden="true"
       />
       {nameModes.map((nameMode) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AnimatePresence, LazyMotion } from "framer-motion";
+import { LazyMotion, domAnimation } from "framer-motion";
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
@@ -38,7 +38,6 @@ function getDigitalContrast(glow: string) {
 }
 
 const TOAST_DURATION_MS = 6200;
-const loadMotionFeatures = () => import("./lib/motionFeatures").then((mod) => mod.default);
 
 export function App() {
   const now = useNow();
@@ -139,7 +138,7 @@ export function App() {
   }, [toast]);
 
   return (
-    <LazyMotion features={loadMotionFeatures} strict>
+    <LazyMotion features={domAnimation} strict>
       <div className={`app-shell app-shell--${theme}`} style={appStyle}>
       <AppControls
         boards={state.boards}
@@ -198,7 +197,6 @@ export function App() {
         selectedClockIds={selectedClockIds}
         onToggleClockSelection={toggleClockSelection}
       />
-      <AnimatePresence>
         {selectedClockIds.length > 0 ? (
           <SelectionBar
             count={selectedClockIds.length}
@@ -217,7 +215,6 @@ export function App() {
             onClear={() => setSelectedClockIds([])}
           />
         ) : null}
-      </AnimatePresence>
       <ClockFormDialog
         open={clockDialogOpen}
         clock={editingClock}

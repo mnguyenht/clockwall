@@ -1,4 +1,3 @@
-import { m, useReducedMotion } from "framer-motion";
 import { Pin, PinOff, Trash2, X } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -11,22 +10,12 @@ type SelectionBarProps = {
 };
 
 export function SelectionBar({ count, onPin, onUnpin, onDelete, onClear }: SelectionBarProps) {
-  const shouldReduceMotion = useReducedMotion();
-
   if (count === 0) {
     return null;
   }
 
   return (
-    <m.div
-      className="selection-bar"
-      initial={shouldReduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 8, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={shouldReduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 8, scale: 0.98 }}
-      transition={
-        shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 32 }
-      }
-    >
+    <div className="selection-bar">
       <span className="selection-bar__count">{count} selected</span>
       <span className="selection-bar__divider" aria-hidden="true" />
       <Button type="button" variant="ghost" size="icon" onClick={onPin} aria-label="Pin" title="Pin">
@@ -56,6 +45,6 @@ export function SelectionBar({ count, onPin, onUnpin, onDelete, onClear }: Selec
       >
         <X size={15} />
       </Button>
-    </m.div>
+    </div>
   );
 }
