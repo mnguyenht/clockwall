@@ -17,6 +17,8 @@ import { NameModeGroup } from "./NameModeGroup";
 import { TimeRangeField } from "./TimeRangeField";
 import { TimezonePicker } from "./TimezonePicker";
 
+const BOARD_NAME_SUGGESTIONS = ["Work Trips", "Family Abroad", "Remote Team", "Market Hours", "Tour Dates", "Client Calls"];
+
 type AppControlsProps = {
   boards: Board[];
   activeBoardId: string;
@@ -80,6 +82,7 @@ export function AppControls({
   const [importError, setImportError] = useState<string | null>(null);
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
+  const [namePlaceholder] = useState(() => BOARD_NAME_SUGGESTIONS[Math.floor(Math.random() * BOARD_NAME_SUGGESTIONS.length)]);
 
   function handleCreateBoard(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -165,19 +168,19 @@ export function AppControls({
         <DialogContent className="board-dialog" aria-describedby="board-dialog-description">
           <form className="board-form" onSubmit={handleCreateBoard} autoComplete="off">
             <div>
-              <DialogTitle className="settings-title">New board</DialogTitle>
+              <DialogTitle className="settings-title">Create a New Board</DialogTitle>
               <DialogDescription id="board-dialog-description" className="settings-description">
-                Create a new board for another clock deck.
+                Give this board a name. You can rename it later.
               </DialogDescription>
             </div>
             <div className="form-field">
-              <Label htmlFor="new-board-name">Board name</Label>
+              <Label htmlFor="new-board-name">Board Name</Label>
               <input
                 id="new-board-name"
                 className="text-input"
                 value={newBoardName}
                 onChange={(event) => setNewBoardName(event.target.value)}
-                placeholder="Board name"
+                placeholder={namePlaceholder}
                 name="new-board-name"
                 autoFocus
               />

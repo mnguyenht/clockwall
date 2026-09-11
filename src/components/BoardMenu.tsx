@@ -12,7 +12,7 @@ type BoardMenuProps = {
 };
 
 export function getCompactBoardName(name: string) {
-  const maxLength = 13;
+  const maxLength = 15;
   return name.length > maxLength ? `${name.slice(0, maxLength - 3)}...` : name;
 }
 
@@ -109,7 +109,7 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
                   }}
                 >
                   <Plus size={15} />
-                  New list
+                  New Board
                 </button>
                 <button
                   type="button"

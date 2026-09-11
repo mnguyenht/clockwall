@@ -7,10 +7,10 @@
   text-rendering: optimizeLegibility;
   --light-bg: #f7f6f2;
   --digital-glow: #17c1a0;
-  --bg-pattern-opacity: 0.3;
-  --bg-pattern-size: 26px;
-  --bg-pattern-tint: 30%;
-  --bg-motion: 0s;
+  --bg-pattern-opacity: 0.22;
+  --bg-pattern-size: 32px;
+  --bg-pattern-tint: 40%;
+  --bg-motion: 10s;
   --control-bg: rgba(255, 255, 255, 0.78);
   --control-surface: #fffdf8;
   --control-border: rgba(31, 29, 24, 0.14);
@@ -917,6 +917,7 @@ select {
   box-shadow: var(--control-shadow);
   color: var(--control-text);
   cursor: pointer;
+  transition: background-color 220ms ease, border-color 220ms ease;
 }
 
 .app-shell--dark-digital .search-toggle {
@@ -963,6 +964,11 @@ select {
 }
 
 .app-shell--dark-digital .search-chip--open .search-chip__field {
+  background: var(--control-surface);
+  border-color: var(--control-border);
+}
+
+.app-shell--dark-digital .search-chip--open .search-toggle {
   background: var(--control-surface);
   border-color: var(--control-border);
 }
@@ -1080,7 +1086,7 @@ select {
 }
 
 .select-trigger {
-  width: 136px;
+  width: 150px;
 }
 
 .settings-select,
@@ -1134,14 +1140,14 @@ select {
 }
 
 .board-select-content {
-  width: 136px !important;
-  min-width: 136px !important;
-  max-width: 136px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
 }
 
 .board-menu {
   z-index: 50;
-  width: 136px;
+  width: 150px;
   border: 1px solid var(--control-border);
   border-radius: 8px;
   background: var(--control-surface);
@@ -1198,8 +1204,11 @@ select {
 }
 
 .board-menu:not(.board-menu--deleting) .board-menu__item:hover,
-.board-menu:not(.board-menu--deleting) .board-menu__action:hover:not(:disabled),
 .board-menu__item--active {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.board-menu__action:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
@@ -1225,10 +1234,16 @@ select {
 }
 
 .board-menu__island {
-  height: 97px;
+  height: 96px;
   margin-top: 6px;
+  overflow: hidden;
   border-top: 1px solid var(--control-border);
   padding-top: 6px;
+  transition: height 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.board-menu--deleting .board-menu__island {
+  height: 50px;
 }
 
 .board-menu__island-state {
@@ -1333,8 +1348,8 @@ select {
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px 9px 20px;
+  gap: 12px;
+  padding: 12px 16px 12px 26px;
   border: 1px solid color-mix(in srgb, var(--control-border) 72%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--control-surface) 68%, transparent);
@@ -1346,15 +1361,20 @@ select {
 
 .selection-bar__count {
   margin-right: 4px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .selection-bar__divider {
   width: 1px;
-  height: 18px;
+  height: 22px;
   background: var(--control-border);
+}
+
+.selection-bar .ui-button--size-icon {
+  width: 48px;
+  height: 48px;
 }
 
 .selection-bar .ui-button,
@@ -2373,7 +2393,7 @@ select {
 }
 
 /* Board menu motion lives in CSS, not the animation library: these rows and buttons
-   are the only way to switch or delete a list, so their visibility must never depend
+   are the only way to switch or delete a board, so their visibility must never depend
    on a JS animation actually running. */
 @keyframes board-row-in {
   from { opacity: 0; transform: translateY(-4px); }
@@ -2404,5 +2424,9 @@ select {
   .board-menu__island-state {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+  }
+
+  .board-menu__island {
+    transition: none;
   }
 }
