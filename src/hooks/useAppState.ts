@@ -49,10 +49,6 @@ function isWorkHoursBasis(value: unknown): value is NonNullable<Clock["workHours
   return value === "clock" || value === "primary" || value === undefined;
 }
 
-function isClockSize(value: unknown): value is Clock["size"] {
-  return value === "sm" || value === "md" || value === "lg" || value === undefined;
-}
-
 function sanitizeImportedClock(value: unknown): Clock | null {
   if (!value || typeof value !== "object") {
     return null;
@@ -88,7 +84,6 @@ function sanitizeImportedClock(value: unknown): Clock | null {
     locationName: clock.locationName,
     secondaryName: typeof clock.secondaryName === "string" ? clock.secondaryName : undefined,
     nameMode: clock.nameMode,
-    size: isClockSize(clock.size) ? clock.size : undefined,
     pinned: typeof clock.pinned === "boolean" ? clock.pinned : undefined,
     color: typeof clock.color === "string" ? clock.color : undefined,
     workHours,

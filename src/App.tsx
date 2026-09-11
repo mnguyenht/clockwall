@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
 import { ClockWall } from "./components/ClockWall";
 import { SelectionBar } from "./components/SelectionBar";
-import { TimeTravel } from './components/TimeTravel';
 import { getTimezoneLabel } from "./data/timezones";
 import { useAppState } from "./hooks/useAppState";
 import { useNow } from "./hooks/useNow";
-import { useSettlingValue } from './hooks/useSettlingValue';
-import { findAvailabilityOverlaps, getAvailabilityDurationMinutes, getClockDateTime } from './lib/time';
+import { getAvailabilityDurationMinutes } from './lib/time';
 import type { Clock } from "./types";
 
 const digitalContrastPresets: Record<string, { time: string; indicator: string }> = {
@@ -37,9 +35,6 @@ export function App() {
   const [selectedClockIds, setSelectedClockIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [timeTravelOpen, setTimeTravelOpen] = useState(false);
-  const [rawOffset, setRawOffset] = useState(0);
-  const { value: offsetMinutes, settling, settleNow } = useSettlingValue(rawOffset, 15);
   const [toast, setToast] = useState<{ title: string; message: ReactNode } | null>(null);
   const {
     state,
@@ -71,13 +66,6 @@ export function App() {
     "--digital-accent": digitalContrast.time,
     "--digital-indicator": digitalContrast.indicator,
   } as CSSProperties;
-  const overlaps = useMemo(
-    () => findAvailabilityOverlaps(activeBoard.clocks, now, state.settings.primaryTimezone),
-    [activeBoard.clocks, now, state.settings.primaryTimezone],
-  );
-  const previewNow = new Date(now.getTime() + offsetMinutes * 60000);
-  const primaryLabel = getClockDateTime(previewNow, state.settings.primaryTimezone).toFormat('HH:mm');
-
   function openAddClock() {
     setEditingClock(null);
     setClockDialogOpen(true);
@@ -114,13 +102,6 @@ export function App() {
         return;
       }
 
-      if (event.key.toLowerCase() === 't') {
-        event.preventDefault();
-        if (timeTravelOpen) setRawOffset(0);
-        setTimeTravelOpen(!timeTravelOpen);
-        return;
-      }
-
       if (event.key === "+" || event.key.toLowerCase() === "a") {
         event.preventDefault();
         openAddClock();
@@ -129,13 +110,7 @@ export function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [clockDialogOpen, selectedClockIds, timeTravelOpen]);
-
-  useEffect(() => {
-    if (settling && rawOffset !== offsetMinutes) {
-      setRawOffset(offsetMinutes);
-    }
-  }, [offsetMinutes, rawOffset, settling]);
+  }, [clockDialogOpen, selectedClockIds]);
 
   useEffect(() => {
     setSelectedClockIds([]);
@@ -173,11 +148,6 @@ export function App() {
         searchOpen={searchOpen}
         onSearchOpenChange={setSearchOpen}
         onSearchQueryChange={setSearchQuery}
-        timeTravelOpen={timeTravelOpen}
-        onTimeTravelToggle={() => {
-          if (timeTravelOpen) setRawOffset(0);
-          setTimeTravelOpen(!timeTravelOpen);
-        }}
         onExportBoard={exportActiveBoardDeck}
         onExportStarted={() => {
           setToast({
@@ -203,8 +173,6 @@ export function App() {
         displaySeconds={state.settings.displaySeconds}
         primaryTimezone={state.settings.primaryTimezone}
         awakeHours={{ start: state.settings.awakeStart, end: state.settings.awakeEnd }}
-        offsetMinutes={offsetMinutes}
-        settling={settling}
         onEditClock={openEditClock}
         onDuplicateClock={duplicateClock}
         onDeleteClock={deleteClock}
@@ -230,21 +198,6 @@ export function App() {
         }}
         onClear={() => setSelectedClockIds([])}
       />
-      <TimeTravel
-        open={timeTravelOpen}
-        rawMinutes={rawOffset}
-        onRawMinutesChange={setRawOffset}
-        onSettle={(value) => {
-          settleNow();
-          setRawOffset(value);
-        }}
-        onClose={() => {
-          setTimeTravelOpen(false);
-          setRawOffset(0);
-        }}
-        overlaps={overlaps}
-        primaryLabel={primaryLabel}
-      />
       <ClockFormDialog
         open={clockDialogOpen}
         clock={editingClock}
@@ -263,7 +216,6 @@ export function App() {
             locationName: getTimezoneLabel(values.timezone),
             secondaryName: values.secondaryName || undefined,
             nameMode: values.nameMode,
-            size: values.size,
             workHours,
           };
 

@@ -91,28 +91,6 @@ export function getAvailabilityStatus(dateTime: DateTime, workHours: Clock["work
   };
 }
 
-export function findAvailabilityOverlaps(
-  clocks: Clock[], now: Date, primaryTimezone: string,
-): Array<{ startMinutes: number; endMinutes: number }> {
-  const considered = clocks.filter((clock) => clock.workHours?.enabled && isValidTimeValue(clock.workHours.start) && isValidTimeValue(clock.workHours.end));
-  if (considered.length < 2) return [];
-  const overlaps: Array<{ startMinutes: number; endMinutes: number }> = [];
-  let runStart: number | null = null;
-  for (let minutes = 0; minutes <= 1440; minutes += 15) {
-    const instant = new Date(now.getTime() + minutes * 60000);
-    const everyoneAvailable = minutes < 1440 && considered.every((clock) => {
-      const timezone = clock.workHours?.basis === 'primary' ? primaryTimezone : clock.timezone;
-      return getAvailabilityStatus(getClockDateTime(instant, timezone), clock.workHours)?.available === true;
-    });
-    if (everyoneAvailable && runStart === null) runStart = minutes;
-    else if (!everyoneAvailable && runStart !== null) {
-      if (minutes - runStart >= 30) overlaps.push({ startMinutes: runStart, endMinutes: minutes });
-      runStart = null;
-    }
-  }
-  return overlaps;
-}
-
 function dateTimeWithTime(dateTime: DateTime, value: string) {
   const [hour = "0", minute = "0"] = value.split(":");
   return dateTime.set({ hour: Number(hour), minute: Number(minute), second: 0, millisecond: 0 });

@@ -13,7 +13,6 @@ type ClockFormValues = {
   timezone: string;
   secondaryName: string;
   nameMode: ClockNameMode;
-  size: NonNullable<Clock["size"]>;
   workHoursEnabled: boolean;
   workHoursStart: string;
   workHoursEnd: string;
@@ -32,7 +31,6 @@ function getInitialValues(clock?: Clock | null): ClockFormValues {
     timezone: clock?.timezone ?? "",
     secondaryName: clock?.secondaryName ?? "",
     nameMode: clock?.nameMode ?? "location",
-    size: clock?.size ?? "md",
     workHoursEnabled: clock?.workHours?.enabled ?? false,
     workHoursStart: clock?.workHours?.start ?? "09:00",
     workHoursEnd: clock?.workHours?.end ?? "17:00",
@@ -138,28 +136,6 @@ export function ClockFormDialog({ open, clock, onOpenChange, onSave }: ClockForm
                   onClick={() => updateValue("nameMode", nameMode)}
                 >
                   {nameModeLabels[nameMode]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="form-field">
-            <Label>Size</Label>
-            <div className="name-mode-group" role="radiogroup" aria-label="Clock size">
-              {([
-                ["sm", "Small"],
-                ["md", "Medium"],
-                ["lg", "Large"],
-              ] as const).map(([size, label]) => (
-                <button
-                  key={size}
-                  type="button"
-                  role="radio"
-                  aria-checked={values.size === size}
-                  className={"name-mode-option" + (values.size === size ? " name-mode-option--active" : "")}
-                  onClick={() => updateValue("size", size)}
-                >
-                  {label}
                 </button>
               ))}
             </div>

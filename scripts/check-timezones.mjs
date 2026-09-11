@@ -25,9 +25,18 @@ const now = DateTime.local();
 
 assert.ok(zoneCountries.length >= 400 && zoneCountries.length <= 440);
 
-assert.equal(searchTimezones("GMT+5", now)[0]?.timezone, "UTC+5");
-assert.equal(searchTimezones("gmt +5", now)[0]?.timezone, "UTC+5");
-assert.equal(searchTimezones("UTC-3:30", now)[0]?.timezone, "UTC-3:30");
+for (const query of ["GMT-5", "gmt -5", "UTC-5", "-5", "-05:00"]) {
+  const results = searchTimezones(query, now);
+  assert.ok(results.length > 0);
+  assert.ok(results.every((row) => now.setZone(row.timezone).offset === -300));
+}
+for (const query of ["GMT+0", "UTC+0"]) {
+  const results = searchTimezones(query, now);
+  assert.ok(results.length > 0);
+  assert.ok(results.every((row) => now.setZone(row.timezone).offset === 0));
+}
+assert.ok(searchTimezones("GMT+9", now).some((row) => row.timezone === "Asia/Tokyo"));
+assert.ok(!timezoneOptions.some((row) => /^UTC[+-]/.test(row.timezone)));
 assert.ok(searchTimezones("Vietnam", now).some((row) => row.timezone === "Asia/Ho_Chi_Minh"));
 assert.ok(searchTimezones("Norway", now).some((row) => row.timezone === "Europe/Oslo"));
 assert.equal(searchTimezones("Norway", now)[0]?.timezone, "Europe/Oslo");

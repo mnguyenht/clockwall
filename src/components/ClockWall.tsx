@@ -30,8 +30,6 @@ type ClockWallProps = {
   displaySeconds: boolean;
   primaryTimezone: string;
   awakeHours: { start: string; end: string };
-  offsetMinutes: number;
-  settling: boolean;
   onEditClock: (clock: Clock) => void;
   onDuplicateClock: (clockId: string) => void;
   onDeleteClock: (clockId: string) => void;
@@ -50,8 +48,6 @@ export function ClockWall({
   displaySeconds,
   primaryTimezone,
   awakeHours,
-  offsetMinutes,
-  settling,
   onEditClock,
   onDuplicateClock,
   onDeleteClock,
@@ -61,6 +57,7 @@ export function ClockWall({
   selectedClockIds,
   onToggleClockSelection,
 }: ClockWallProps) {
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -108,6 +105,7 @@ export function ClockWall({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    setActiveDragId(null);
 
     if (!over) {
       return;
@@ -125,7 +123,40 @@ export function ClockWall({
       return;
     }
 
-    const reorderedMovableIds = arrayMove(movableClockIds, oldIndex, newIndex);
+    const selectedSet = new Set(selectedClockIds);
+    const picked = movableClockIds
+      .map((id, index) => ({ id, index }))
+      .filter((entry) => selectedSet.has(entry.id));
+    let reorderedMovableIds: string[];
+
+    if (!selectedSet.has(activeClock.id) || picked.length < 2) {
+      reorderedMovableIds = arrayMove(movableClockIds, oldIndex, newIndex);
+    } else {
+      const delta = newIndex - oldIndex;
+      const n = movableClockIds.length;
+
+      // Clamp the group as a unit so the gaps between the picked clocks never collapse.
+      let shift = delta;
+      const first = picked[0].index + delta;
+      const last = picked[picked.length - 1].index + delta;
+      if (first < 0) shift -= first;
+      if (last > n - 1) shift -= last - (n - 1);
+
+      const placed: Array<string | null> = new Array(n).fill(null);
+      picked.forEach((entry) => {
+        placed[entry.index + shift] = entry.id;
+      });
+      const rest = movableClockIds.filter((id) => !selectedSet.has(id));
+      let restIndex = 0;
+      for (let i = 0; i < n; i += 1) {
+        if (!placed[i]) {
+          placed[i] = rest[restIndex];
+          restIndex += 1;
+        }
+      }
+      reorderedMovableIds = placed as string[];
+    }
+
     const nextClockIds = board.clocks.map((clock) => {
       if (clock.pinned || !movableClockIds.includes(clock.id)) {
         return clock.id;
@@ -157,14 +188,26 @@ export function ClockWall({
       sensors={sensors}
       collisionDetection={closestCenter}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+      onDragStart={({ active }) => setActiveDragId(String(active.id))}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveDragId(null)}
     >
       <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
-        <main className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''} ${offsetMinutes !== 0 ? 'clock-wall--preview' : ''}`} aria-label={`${board.name} clocks`}>
+        <main className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''}`} aria-label={`${board.name} clocks`}>
           {visibleClocks.map((clock) => {
             const clockIndex = board.clocks.findIndex((candidate) => candidate.id === clock.id);
             return (
-            <SortableClockTile key={clock.id} clock={clock}>
+            <SortableClockTile
+              key={clock.id}
+              clock={clock}
+              coDragging={
+                !clock.pinned &&
+                activeDragId !== null &&
+                activeDragId !== clock.id &&
+                selectedClockIds.includes(activeDragId) &&
+                selectedClockIds.includes(clock.id)
+              }
+            >
               <ClockTile
                 clock={clock}
                 now={now}
@@ -172,8 +215,6 @@ export function ClockWall({
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
                 awakeHours={awakeHours}
-                offsetMinutes={offsetMinutes}
-                settling={settling}
                 onEdit={onEditClock}
                 onDuplicate={onDuplicateClock}
                 onDelete={onDeleteClock}
@@ -212,14 +253,15 @@ function clockMatchesSearch(clock: Clock, now: Date, query: string) {
 type SortableClockTileProps = {
   clock: Clock;
   children: ReactNode;
+  coDragging: boolean;
 };
 
-function SortableClockTile({ clock, children }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragging }: SortableClockTileProps) {
   if (clock.pinned) {
     return <PinnedClockTile clock={clock}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragging={coDragging}>{children}</MovableClockTile>;
 }
 
 function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNode }) {
@@ -239,7 +281,7 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   return (
     <div
       ref={setNodeRef}
-      className={`sortable-clock sortable-clock--${clock.size ?? "md"} sortable-clock--pinned sortable-clock--search-transition`}
+      className="sortable-clock sortable-clock--pinned sortable-clock--search-transition"
       style={style}
       aria-disabled
     >
@@ -248,7 +290,7 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   );
 }
 
-function MovableClockTile({ clock, children }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragging }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
     animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
@@ -266,8 +308,8 @@ function MovableClockTile({ clock, children }: SortableClockTileProps) {
   } as CSSProperties;
   const className = [
     "sortable-clock",
-    `sortable-clock--${clock.size ?? "md"}`,
     isDragging ? "sortable-clock--dragging" : "",
+    coDragging ? "sortable-clock--co-dragging" : "",
   ]
     .filter(Boolean)
     .join(" ");

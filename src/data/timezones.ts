@@ -7,7 +7,6 @@ export type TimezoneOption = {
   countries: string[];
   countryLabel: string;
   keywords: string;
-  isOffset: boolean;
   popular: boolean;
 };
 
@@ -116,72 +115,6 @@ const countryAliases: Record<string, string[]> = {
   LA: ["laos"],
 };
 
-const fixedOffsets = [
-  "-12",
-  "-11",
-  "-10",
-  "-9:30",
-  "-9",
-  "-8",
-  "-7",
-  "-6",
-  "-5",
-  "-4",
-  "-3:30",
-  "-3",
-  "-2",
-  "-1",
-  "0",
-  "+1",
-  "+2",
-  "+3",
-  "+3:30",
-  "+4",
-  "+4:30",
-  "+5",
-  "+5:30",
-  "+5:45",
-  "+6",
-  "+6:30",
-  "+7",
-  "+8",
-  "+8:45",
-  "+9",
-  "+9:30",
-  "+10",
-  "+10:30",
-  "+11",
-  "+12",
-  "+12:45",
-  "+13",
-  "+14",
-] as const;
-
-function getOffsetKeywords(offset: string) {
-  if (offset === "0") {
-    return "gmt utc zulu z gmt+0 gmt-0 utc+0";
-  }
-
-  const sign = offset[0];
-  const [hour, minute = "00"] = offset.slice(1).split(":");
-  const compact = `${sign}${Number(hour)}${minute === "00" ? "" : `:${minute}`}`;
-  const paddedHour = `${sign}${hour.padStart(2, "0")}`;
-  const full = `${paddedHour}:${minute}`;
-  const numeric = `${paddedHour}${minute}`;
-  return [
-    `gmt${compact}`,
-    `gmt${paddedHour}`,
-    `gmt${full}`,
-    `gmt${numeric}`,
-    `utc${compact}`,
-    `utc${paddedHour}`,
-    `utc${full}`,
-    compact,
-    paddedHour,
-    full,
-  ].join(" ");
-}
-
 const ianaOptions: TimezoneOption[] = zoneCountries.map(([timezone, countryCodes, aliases]) => {
   const countries = countryCodes ? countryCodes.split(" ") : [];
   const countryList = countries.map((code) => countryNames[code]).filter((name): name is string => Boolean(name));
@@ -201,22 +134,21 @@ const ianaOptions: TimezoneOption[] = zoneCountries.map(([timezone, countryCodes
       .filter(Boolean)
       .join(" ")
       .toLowerCase(),
-    isOffset: false,
     popular: popularZoneSet.has(timezone),
   };
 });
 
-const offsetOptions: TimezoneOption[] = fixedOffsets.map((offset) => ({
-  timezone: offset === "0" ? "UTC" : `UTC${offset}`,
-  label: offset === "0" ? "UTC" : `GMT${offset}`,
-  countries: [],
-  countryLabel: "",
-  keywords: getOffsetKeywords(offset),
-  isOffset: true,
-  popular: popularZoneSet.has(offset === "0" ? "UTC" : `UTC${offset}`),
-}));
-
-export const timezoneOptions: TimezoneOption[] = [...ianaOptions, ...offsetOptions];
+export const timezoneOptions: TimezoneOption[] = [
+  ...ianaOptions,
+  {
+    timezone: "UTC",
+    label: "UTC",
+    countries: [],
+    countryLabel: "",
+    keywords: "utc gmt zulu universal",
+    popular: true,
+  },
+];
 
 const optionByTimezone = new Map(timezoneOptions.map((option) => [option.timezone, option]));
 const labelByOption = new Map(timezoneOptions.map((option) => [option, option.label.toLowerCase()]));
@@ -262,9 +194,9 @@ export function isSupportedTimezone(timezone: string) {
 }
 
 export function getOffsetCode(dateTime: DateTime) {
-  const offsetMinutes = dateTime.offset;
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const absoluteMinutes = Math.abs(offsetMinutes);
+  const zoneOffset = dateTime.offset;
+  const sign = zoneOffset >= 0 ? "+" : "-";
+  const absoluteMinutes = Math.abs(zoneOffset);
   const hours = Math.floor(absoluteMinutes / 60);
   const minutes = absoluteMinutes % 60;
   return `GMT${sign}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}`;
@@ -300,6 +232,23 @@ function parseTimeQuery(query: string): TimeQuery | null {
   return { hour, minute };
 }
 
+function parseOffsetQuery(query: string) {
+  const whitespaceStripped = query.replace(/\s/g, "");
+  const match = whitespaceStripped.match(/^(?:gmt|utc)?\s*([+-])\s*(\d{1,2})(?::?(\d{2}))?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[2]);
+  const minutes = match[3] === undefined ? 0 : Number(match[3]);
+  if (minutes > 59) {
+    return null;
+  }
+
+  const totalMinutes = hours * 60 + minutes;
+  return match[1] === "-" ? -totalMinutes : totalMinutes;
+}
+
 export function searchTimezones(query: string, now: DateTime, limit = 12) {
   const q = query.trim().toLowerCase();
   if (!q) {
@@ -315,6 +264,7 @@ export function searchTimezones(query: string, now: DateTime, limit = 12) {
 
   const qCompact = q.replace(/[^a-z0-9+:-]/g, "");
   const timeQuery = parseTimeQuery(q);
+  const offsetQuery = parseOffsetQuery(q);
   const matches: Array<{ option: TimezoneOption; rank: number }> = [];
 
   for (const option of timezoneOptions) {
@@ -328,15 +278,23 @@ export function searchTimezones(query: string, now: DateTime, limit = 12) {
 
     if (label === q) {
       rank = 0;
-    } else if (option.isOffset && keywordTokensByOption.get(option)?.has(qCompact)) {
-      rank = 1;
+    } else if (offsetQuery !== null) {
+      try {
+        if (now.setZone(option.timezone).offset === offsetQuery) {
+          rank = 1;
+        } else {
+          continue;
+        }
+      } catch {
+        continue;
+      }
     } else if (label.startsWith(q)) {
       rank = 2;
     } else if (optionCountryNames.some(({ name, primary }) => primary && name.startsWith(q))) {
       rank = 3;
     } else if (optionCountryNames.some(({ name, primary }) => !primary && name.startsWith(q))) {
       rank = 3.5;
-    } else if (timeQuery && !option.isOffset) {
+    } else if (timeQuery) {
       try {
         const zoned = now.setZone(option.timezone);
         if (

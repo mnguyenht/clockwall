@@ -7,8 +7,6 @@ const minorHourMarks = [1, 2, 4, 5, 7, 8, 10, 11];
 type AnalogClockProps = {
   dateTime: DateTime;
   displaySeconds: boolean;
-  offsetMinutes: number;
-  settling: boolean;
   period: "AM" | "PM";
   availabilityArcs?: Array<{
     startAngle: number;
@@ -19,10 +17,10 @@ type AnalogClockProps = {
 
 const AVAILABILITY_CENTER = 77;
 const AVAILABILITY_RADIUS = 62;
-// The filled sector is drawn with a 4-unit round-joined stroke of its own colour to
-// round the corners, and the stroke straddles the path, so the path band is 4 units
-// narrower than the 9 units the sector actually covers.
-const AVAILABILITY_BAND = 5;
+// The band's rounded corners come from a thick round-joined stroke, whose radius is
+// half the stroke width. A thin path plus a thick stroke therefore rounds far more
+// than a thick path plus a thin one, at the same total width.
+const AVAILABILITY_BAND = 4;
 
 function ringSectorPath(startAngle: number, sizeAngle: number) {
   const inner = AVAILABILITY_RADIUS - AVAILABILITY_BAND / 2;
@@ -62,7 +60,7 @@ function useContinuousAngle(target: number) {
 }
 
 export function AnalogClock({
-  dateTime, displaySeconds, period, offsetMinutes, settling, availabilityArcs = [],
+  dateTime, displaySeconds, period, availabilityArcs = [],
 }: AnalogClockProps) {
   const hour = dateTime.hour % 12;
   const minute = dateTime.minute;
@@ -71,7 +69,7 @@ export function AnalogClock({
   const minuteRotation = useContinuousAngle(minute * 6 + second * 0.1);
   const secondRotation = second * 6;
   return (
-    <div className={`analog-clock analog-clock--${period.toLowerCase()} ${settling ? 'analog-clock--settling' : ''}`} aria-hidden='true'>
+    <div className={`analog-clock analog-clock--${period.toLowerCase()}`} aria-hidden='true'>
       {availabilityArcs.length > 0 ? (
         <svg className="analog-clock__availability" viewBox="0 0 154 154">
           {availabilityArcs.map((arc, index) => (
@@ -102,7 +100,7 @@ export function AnalogClock({
         className="analog-clock__hand analog-clock__hand--minute"
         style={{ transform: `translateX(-50%) rotate(${minuteRotation}deg)` }}
       />
-      {displaySeconds && offsetMinutes === 0 ? (
+      {displaySeconds ? (
         <span
           className="analog-clock__hand analog-clock__hand--second"
           style={{ transform: `translateX(-50%) rotate(${secondRotation}deg)` }}

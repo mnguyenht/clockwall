@@ -1,4 +1,4 @@
-import { Download, FastForward, Moon, Plus, Search, Settings, SunMedium, Upload, X } from 'lucide-react';
+import { Download, Moon, Plus, Search, Settings, SunMedium, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import type { Board, BoardDeckExport, ThemeMode } from "../types";
 import { Button } from "./ui/button";
@@ -27,7 +27,6 @@ type AppControlsProps = {
   awakeEnd: string;
   searchQuery: string;
   searchOpen: boolean;
-  timeTravelOpen: boolean;
   onBoardChange: (boardId: string) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onCreateBoard: (name: string) => void;
@@ -38,7 +37,6 @@ type AppControlsProps = {
   onAddClock: () => void;
   onSearchOpenChange: (open: boolean) => void;
   onSearchQueryChange: (query: string) => void;
-  onTimeTravelToggle: () => void;
   onExportBoard: () => BoardDeckExport;
   onExportStarted: () => void;
   onImportBoard: (raw: string) => void;
@@ -60,7 +58,6 @@ export function AppControls({
   awakeEnd,
   searchQuery,
   searchOpen,
-  timeTravelOpen,
   onBoardChange,
   onThemeChange,
   onCreateBoard,
@@ -71,7 +68,6 @@ export function AppControls({
   onAddClock,
   onSearchOpenChange,
   onSearchQueryChange,
-  onTimeTravelToggle,
   onExportBoard,
   onExportStarted,
   onImportBoard,
@@ -246,18 +242,6 @@ export function AppControls({
             ) : null}
           </div>
         </div>
-
-        <Button
-          type='button'
-          variant='icon'
-          size='icon'
-          aria-label='Time travel'
-          title='Time travel'
-          aria-pressed={timeTravelOpen}
-          onClick={onTimeTravelToggle}
-        >
-          <FastForward size={18} />
-        </Button>
 
         <Button
           type="button"

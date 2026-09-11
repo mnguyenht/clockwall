@@ -137,9 +137,7 @@ export function TimezonePicker({
             results.map((option, index) => {
               const zoned = now.setZone(option.timezone);
               const offset = getOffsetCode(zoned);
-              const subtext = option.isOffset
-                ? offset
-                : `${offset}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
+              const subtext = `${offset}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
               return (
                 <button
                   id={`${listId}-${index}`}
