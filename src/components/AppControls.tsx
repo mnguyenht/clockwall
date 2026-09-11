@@ -325,6 +325,7 @@ export function AppControls({
               <div className="settings-row">
                 <div className="settings-row__copy">
                   <Label>Import & Export</Label>
+                  <p>Download and import your clocks on a different machine.</p>
                   {importError ? <span className="settings-error">{importError}</span> : null}
                 </div>
                 <div className="settings-actions">

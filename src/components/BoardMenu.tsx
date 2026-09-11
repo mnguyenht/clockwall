@@ -1,6 +1,5 @@
 import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
-import { AnimatePresence, m } from "framer-motion";
-import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import type { Board } from "../types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
@@ -61,9 +60,9 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
           <ChevronDown size={16} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="board-menu" align="start">
+      <PopoverContent className={`board-menu${deleteMode ? " board-menu--deleting" : ""}`} align="start">
         <div className="board-menu__list">
-          {boards.map((board) => (
+          {boards.map((board, index) => (
             <button
               key={board.id}
               type="button"
@@ -71,55 +70,36 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
               title={board.name}
               aria-disabled={deleteMode || undefined}
               onClick={() => selectBoard(board.id)}
+              style={{ "--row-index": index } as CSSProperties}
             >
               <span>{getCompactBoardName(board.name)}</span>
-              <AnimatePresence>
+              <span className="board-menu__delete-slot">
                 {deleteMode && canDelete ? (
-                  <m.span
-                    key="delete"
-                    className="board-menu__delete"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Delete ${board.name}`}
-                    onClick={(event) => deleteBoard(event, board.id)}
-                    onKeyDown={(event) => handleDeleteKeyDown(event, board.id)}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.12 }}
-                  >
-                    <Trash2 size={15} />
-                  </m.span>
-                ) : null}
-              </AnimatePresence>
+                    <span
+                      className="board-menu__delete"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Delete ${board.name}`}
+                      onClick={(event) => deleteBoard(event, board.id)}
+                      onKeyDown={(event) => handleDeleteKeyDown(event, board.id)}
+                    >
+                      <Trash2 size={15} />
+                    </span>
+                  ) : null}
+              </span>
             </button>
           ))}
         </div>
         <div className="board-menu__island">
-          <AnimatePresence mode="wait">
-            {deleteMode ? (
-              <m.div
-                key="delete"
-                className="board-menu__island-state"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.14, ease: "easeOut" }}
-              >
+          {deleteMode ? (
+              <div key="delete" className="board-menu__island-state">
                 <button type="button" className="board-menu__action" onClick={() => setDeleteMode(false)}>
                   <Check size={15} />
                   Done
                 </button>
-              </m.div>
+              </div>
             ) : (
-              <m.div
-                key="normal"
-                className="board-menu__island-state"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.14, ease: "easeOut" }}
-              >
+              <div key="normal" className="board-menu__island-state">
                 <button
                   type="button"
                   className="board-menu__action"
@@ -141,9 +121,8 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
                   <Trash2 size={15} />
                   Delete
                 </button>
-              </m.div>
+              </div>
             )}
-          </AnimatePresence>
         </div>
       </PopoverContent>
     </Popover>

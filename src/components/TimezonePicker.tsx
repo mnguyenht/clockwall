@@ -83,7 +83,7 @@ export function TimezonePicker({
           onChange("");
           setFocused(true);
         }}
-        onFocus={() => setFocused(true)}
+        onPointerDown={() => setFocused(true)}
         onBlur={() => window.setTimeout(() => setFocused(false), 120)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {

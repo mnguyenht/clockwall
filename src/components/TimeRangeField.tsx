@@ -103,7 +103,7 @@ export function TimeRangeField({
   return (
     <div className="time-range-field">
       {renderTime("start", "Awake start")}
-      <span className="time-range-field__separator" aria-hidden="true">–</span>
+      <span className="time-range-field__separator" aria-hidden="true">&ndash;</span>
       {renderTime("end", "Awake end")}
     </div>
   );

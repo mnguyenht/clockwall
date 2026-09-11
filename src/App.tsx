@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
+import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
@@ -41,6 +41,7 @@ const TOAST_DURATION_MS = 6200;
 
 export function App() {
   const now = useNow();
+  const shouldReduceMotion = useReducedMotion();
   const [clockDialogOpen, setClockDialogOpen] = useState(false);
   const [editingClock, setEditingClock] = useState<Clock | null>(null);
   const [selectedClockIds, setSelectedClockIds] = useState<string[]>([]);
@@ -142,6 +143,7 @@ export function App() {
     <LazyMotion features={domAnimation} strict>
       <div
         className={`app-shell app-shell--${theme}`}
+        data-bg="dots"
         style={appStyle}
         onPointerDown={(event) => {
           if (event.target === event.currentTarget && selectedClockIds.length > 0) {
@@ -265,17 +267,27 @@ export function App() {
           addClock(clockValues);
         }}
       />
-      {toast
-        ? createPortal(
-            <div className={`app-toast-layer app-shell--${theme}`} style={appStyle}>
-              <div className="app-toast app-toast--center" role="status" aria-live="polite">
+      {createPortal(
+        <div className={`app-toast-layer app-shell--${theme}`} style={appStyle}>
+          <AnimatePresence>
+            {toast ? (
+              <m.div
+                className="app-toast app-toast--center"
+                role="status"
+                aria-live="polite"
+                initial={shouldReduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={shouldReduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+                transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 620, damping: 30 }}
+              >
                 <strong>{toast.title}</strong>
                 <span>{toast.message}</span>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+              </m.div>
+            ) : null}
+          </AnimatePresence>
+        </div>,
+        document.body,
+      )}
       </div>
     </LazyMotion>
   );

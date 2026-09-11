@@ -7,6 +7,10 @@
   text-rendering: optimizeLegibility;
   --light-bg: #f7f6f2;
   --digital-glow: #17c1a0;
+  --bg-pattern-opacity: 0.3;
+  --bg-pattern-size: 26px;
+  --bg-pattern-tint: 30%;
+  --bg-motion: 0s;
   --control-bg: rgba(255, 255, 255, 0.78);
   --control-surface: #fffdf8;
   --control-border: rgba(31, 29, 24, 0.14);
@@ -120,12 +124,76 @@ select {
 
 .app-shell--dark-digital::after {
   opacity: 1;
+  --bg-pattern-glow: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--digital-glow) var(--bg-pattern-tint), transparent)
+      calc(var(--bg-pattern-opacity) * 100%),
+    transparent
+  );
+  --bg-pattern-accent: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--digital-accent) var(--bg-pattern-tint), transparent)
+      calc(var(--bg-pattern-opacity) * 100%),
+    transparent
+  );
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--digital-glow) 30%, transparent) 1.1px, transparent 1.1px),
     radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
     radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
     linear-gradient(180deg, #05090b 0%, #020405 100%);
-  background-size: 26px 26px, auto, auto, auto;
+}
+
+.app-shell--dark-digital:not([data-bg])::after,
+.app-shell--dark-digital[data-bg="dots"]::after {
+  background:
+    radial-gradient(circle, var(--bg-pattern-glow) 1.1px, transparent 1.1px),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
+    linear-gradient(180deg, #05090b 0%, #020405 100%);
+  background-size: var(--bg-pattern-size), auto, auto, auto;
+}
+
+.app-shell--dark-digital[data-bg="grid"]::after {
+  background:
+    linear-gradient(to right, var(--bg-pattern-glow) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bg-pattern-glow) 1px, transparent 1px),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
+    linear-gradient(180deg, #05090b 0%, #020405 100%);
+  background-size: var(--bg-pattern-size), var(--bg-pattern-size), auto, auto, auto;
+}
+
+.app-shell--dark-digital[data-bg="aurora"]::after {
+  background:
+    radial-gradient(circle at 24% 36%, var(--bg-pattern-glow), transparent 38rem),
+    radial-gradient(circle at 78% 64%, var(--bg-pattern-accent), transparent 34rem),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
+    linear-gradient(180deg, #05090b 0%, #020405 100%);
+  animation-name: background-drift;
+  animation-duration: var(--bg-motion);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.app-shell--dark-digital[data-bg="gradient"]::after {
+  background:
+    radial-gradient(circle at 50% 46%, var(--bg-pattern-glow), transparent 46rem),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
+    linear-gradient(180deg, #05090b 0%, #020405 100%);
+  animation-name: background-breathe;
+  animation-duration: var(--bg-motion);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.app-shell--dark-digital[data-bg="none"]::after {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--digital-glow) 34%, transparent), transparent 28rem),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--digital-accent) 14%, transparent), transparent 24rem),
+    linear-gradient(180deg, #05090b 0%, #020405 100%);
 }
 
 .clock-wall {
@@ -188,7 +256,8 @@ select {
   opacity: 0.92;
 }
 
-.sortable-clock:focus:not(:focus-visible) {
+.sortable-clock:focus,
+.sortable-clock:focus-visible {
   outline: none;
 }
 
@@ -1086,13 +1155,15 @@ select {
 
 .board-menu__list {
   display: grid;
+  gap: 2px;
 }
 
 .board-menu__item,
 .board-menu__action {
   display: flex;
   width: 100%;
-  min-height: 36px;
+  height: 44px;
+  min-height: 44px;
   align-items: center;
   gap: 9px;
   border: 0;
@@ -1108,6 +1179,8 @@ select {
 }
 
 .board-menu__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
   justify-content: space-between;
   font-weight: 700;
 }
@@ -1119,10 +1192,17 @@ select {
   white-space: nowrap;
 }
 
-.board-menu__item:hover,
-.board-menu__action:hover:not(:disabled),
+.board-menu:not(.board-menu--deleting) .board-menu__item:hover,
+.board-menu:not(.board-menu--deleting) .board-menu__action:hover:not(:disabled),
 .board-menu__item--active {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.board-menu__delete-slot {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
 }
 
 .board-menu__delete {
@@ -1140,7 +1220,7 @@ select {
 }
 
 .board-menu__island {
-  height: 81px;
+  height: 97px;
   margin-top: 6px;
   border-top: 1px solid var(--control-border);
   padding-top: 6px;
@@ -1244,7 +1324,7 @@ select {
 .selection-bar {
   position: fixed;
   left: 50%;
-  bottom: 26px;
+  bottom: 44px;
   z-index: 30;
   display: flex;
   align-items: center;
@@ -1283,7 +1363,8 @@ select {
 }
 
 .selection-bar__delete:hover {
-  background: color-mix(in srgb, #c0453a 14%, transparent);
+  background: color-mix(in srgb, #c0453a 18%, transparent);
+  color: #e2685c;
 }
 
 .add-clock-button:hover {
@@ -1540,6 +1621,10 @@ select {
   white-space: nowrap;
 }
 
+.name-mode-group--roomy .name-mode-option {
+  font-size: 0.86rem;
+}
+
 .name-mode-option:hover {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
@@ -1631,26 +1716,29 @@ select {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid var(--control-border);
-  border-radius: 8px;
-  background: var(--control-surface);
   color: var(--control-text);
   font-size: 0.94rem;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
-  padding: 0 10px;
 }
 
 .time-range-field__digits {
   display: flex;
+  height: 42px;
+  flex: 1 1 0;
   min-width: 0;
   align-items: center;
   justify-content: center;
   gap: 2px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--control-surface);
+  padding: 0 8px;
 }
 
 .time-range-field__separator {
   flex: 0 0 auto;
+  color: color-mix(in srgb, var(--control-text) 62%, transparent);
 }
 
 .time-range-field__input {
@@ -1765,10 +1853,10 @@ select {
 
 .timezone-option small {
   margin-top: 3px;
-  color: color-mix(in srgb, var(--control-text) 66%, transparent);
+  color: color-mix(in srgb, var(--control-text) 74%, transparent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
@@ -1875,6 +1963,7 @@ select {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
   transform: translate(0, -50%);
   transition: transform 160ms ease;
+  will-change: transform;
 }
 
 .switch-root[data-state="checked"] .switch-thumb {
@@ -1914,8 +2003,7 @@ select {
   color: var(--control-text);
   padding: 14px 16px;
   pointer-events: auto;
-  transform: translateX(-50%);
-  animation: app-toast-pop 6200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  translate: -50% 0;
 }
 
 .app-shell--dark-digital .app-toast {
@@ -1952,21 +2040,152 @@ select {
   color: var(--control-text);
 }
 
-@keyframes app-toast-pop {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 12px) scale(0.96);
-  }
+.background-tuner {
+  position: fixed;
+  z-index: 200;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: min(328px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  gap: 16px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(8, 13, 15, 0.96);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48);
+  color: #effff8;
+  padding: 16px;
+  scrollbar-width: none;
+}
 
-  9%,
-  84% {
+.background-tuner::-webkit-scrollbar {
+  display: none;
+}
+
+.background-tuner button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+
+.background-tuner__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.background-tuner h2,
+.background-tuner p {
+  margin: 0;
+}
+
+.background-tuner h2 {
+  font-size: 1rem;
+}
+
+.background-tuner p {
+  margin-top: 4px;
+  color: rgba(239, 255, 248, 0.62);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.background-tuner fieldset {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.background-tuner legend,
+.background-tuner__control > span,
+.background-tuner__output > div {
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.background-tuner__variants > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.background-tuner .background-tuner__variant--active {
+  border-color: color-mix(in srgb, var(--digital-glow) 72%, white 12%);
+  background: color-mix(in srgb, var(--digital-glow) 22%, transparent);
+}
+
+.background-tuner__control {
+  display: grid;
+  gap: 7px;
+}
+
+.background-tuner__control > span,
+.background-tuner__output > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.background-tuner output {
+  color: color-mix(in srgb, var(--digital-accent) 82%, white);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.background-tuner input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--digital-glow);
+}
+
+.background-tuner__output {
+  display: grid;
+  gap: 8px;
+}
+
+.background-tuner__output pre {
+  margin: 0;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(239, 255, 248, 0.82);
+  font: 0.7rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 10px;
+  scrollbar-width: none;
+}
+
+.background-tuner__output pre::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes background-drift {
+  from {
+    opacity: 0.9;
+    transform: scale(1.02) translate3d(-0.6%, -0.4%, 0);
+  }
+  to {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: scale(1.04) translate3d(0.6%, 0.4%, 0);
   }
+}
 
-  100% {
-    opacity: 0;
-    transform: translate(-50%, 10px) scale(0.985);
+@keyframes background-breathe {
+  from {
+    opacity: 0.86;
+    transform: scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.045);
   }
 }
 
@@ -2037,6 +2256,13 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-shell--dark-digital[data-bg="aurora"]::after,
+  .app-shell--dark-digital[data-bg="gradient"]::after {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   .dialog-overlay,
   .dialog-content,
   .select-content,
@@ -2123,4 +2349,39 @@ select {
   left: 0;
   right: 0;
   width: auto;
+}
+
+/* Board menu motion lives in CSS, not the animation library: these rows and buttons
+   are the only way to switch or delete a list, so their visibility must never depend
+   on a JS animation actually running. */
+@keyframes board-row-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes board-fade-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+
+.board-menu__item {
+  animation: board-row-in 160ms ease-out backwards;
+  animation-delay: calc(var(--row-index, 0) * 30ms);
+}
+
+.board-menu__delete {
+  animation: board-fade-in 120ms ease-out;
+}
+
+.board-menu__island-state {
+  animation: board-row-in 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-menu__item,
+  .board-menu__delete,
+  .board-menu__island-state {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
 }
