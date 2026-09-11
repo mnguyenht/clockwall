@@ -53,6 +53,10 @@ function useContinuousAngle(target: number) {
   const last = useRef(target);
   const lastAngle = ((last.current % 360) + 360) % 360;
   const delta = ((target - lastAngle + 540) % 360) - 180;
+  // Writing a ref during render, on purpose: the hands must wind forward through
+  // 359 -> 360 instead of snapping back to 0. Safe under replayed or discarded
+  // renders because it is idempotent -- re-running with the same target computes
+  // a delta of 0, so a double render cannot advance the hand twice.
   last.current += delta;
   return last.current;
 }

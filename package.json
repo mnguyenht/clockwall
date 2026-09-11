@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "webpack serve --mode development",
-    "build": "tsc -b && webpack --mode production",
+    "build": "tsc -b && webpack --mode production && node scripts/copy-public.mjs",
     "generate:timezones": "node scripts/generate-timezones.mjs",
     "preview": "webpack serve --mode production"
   },

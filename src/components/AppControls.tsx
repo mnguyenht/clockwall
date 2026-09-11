@@ -131,10 +131,13 @@ export function AppControls({
     link.click();
     link.remove();
 
-    window.requestAnimationFrame(() => {
+    // Deliberately not requestAnimationFrame: it does not fire while the tab is
+    // hidden, so exporting and switching away would skip the toast and leak the
+    // blob URL for the rest of the session.
+    window.setTimeout(() => {
       onExportStarted();
       URL.revokeObjectURL(url);
-    });
+    }, 0);
   }
 
   async function importBoard(event: ChangeEvent<HTMLInputElement>) {
@@ -221,6 +224,7 @@ export function AppControls({
               onChange={(event) => onSearchQueryChange(event.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search"
+              aria-label="Search clocks"
               name="clock-search"
               autoComplete="off"
               autoCorrect="off"
@@ -359,6 +363,7 @@ export function AppControls({
                     className="file-input"
                     type="file"
                     accept="application/json,.json"
+                    aria-label="Import a clock deck file"
                     onChange={importBoard}
                   />
                 </div>
