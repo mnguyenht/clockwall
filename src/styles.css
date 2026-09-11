@@ -258,7 +258,8 @@ select {
 
 .sortable-clock--co-dragging {
   z-index: 7;
-  opacity: 0.92;
+  filter: drop-shadow(0 24px 34px rgba(31, 25, 18, 0.18));
+  opacity: 0.96;
 }
 
 .sortable-clock:focus,
@@ -266,7 +267,8 @@ select {
   outline: none;
 }
 
-.sortable-clock--dragging .clock-tile {
+.sortable-clock--dragging .clock-tile,
+.sortable-clock--co-dragging .clock-tile {
   outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
   outline-offset: 5px;
   box-shadow: 0 24px 60px rgba(31, 25, 18, 0.2);
@@ -288,11 +290,13 @@ select {
     box-shadow 180ms ease;
 }
 
-.app-shell--hotel-analog .sortable-clock--dragging .clock-tile {
+.app-shell--hotel-analog .sortable-clock--dragging .clock-tile,
+.app-shell--hotel-analog .sortable-clock--co-dragging .clock-tile {
   outline-color: rgba(255, 255, 255, 0.9);
 }
 
-.app-shell--dark-digital .sortable-clock--dragging {
+.app-shell--dark-digital .sortable-clock--dragging,
+.app-shell--dark-digital .sortable-clock--co-dragging {
   opacity: 1;
   filter:
     drop-shadow(0 26px 38px rgba(0, 0, 0, 0.58))

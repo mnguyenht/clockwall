@@ -10,14 +10,13 @@ import {
 } from "@dnd-kit/core";
 import {
   arrayMove,
-  defaultAnimateLayoutChanges,
   rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Board, Clock, ThemeMode } from "../types";
 import { ClockTile } from "./ClockTile";
 import { getClockDateTime, getClockPrimaryName, getTimezoneCode } from "../lib/time";
@@ -61,6 +60,21 @@ export function ClockWall({
 }: ClockWallProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragDelta, setDragDelta] = useState<{ x: number; y: number } | null>(null);
+  const [flipDeltas, setFlipDeltas] = useState<Map<string, { x: number; y: number }> | null>(null);
+  const tileNodes = useRef(new Map<string, HTMLElement>());
+  const flipFirstRects = useRef<Map<string, DOMRect> | null>(null);
+  const registerTileNode = useCallback((id: string, node: HTMLElement | null) => {
+    if (node) {
+      tileNodes.current.set(id, node);
+    } else {
+      tileNodes.current.delete(id);
+    }
+  }, []);
+  const snapshotTileRects = useCallback(() => {
+    const rects = new Map<string, DOMRect>();
+    tileNodes.current.forEach((node, id) => rects.set(id, node.getBoundingClientRect()));
+    flipFirstRects.current = rects;
+  }, []);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -79,6 +93,49 @@ export function ClockWall({
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
   const sortableItems = movableClockIds;
   const dragRotation = useVelocityRotation(activeDragId !== null, dragDelta?.x ?? 0);
+
+  useLayoutEffect(() => {
+    const firstRects = flipFirstRects.current;
+    if (!firstRects) {
+      return;
+    }
+
+    flipFirstRects.current = null;
+    const deltas = new Map<string, { x: number; y: number }>();
+    firstRects.forEach((first, id) => {
+      const node = tileNodes.current.get(id);
+      if (!node) {
+        return;
+      }
+
+      const last = node.getBoundingClientRect();
+      const x = first.left - last.left;
+      const y = first.top - last.top;
+      if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) {
+        deltas.set(id, { x, y });
+      }
+    });
+    if (deltas.size > 0) {
+      setFlipDeltas(deltas);
+    }
+  });
+
+  useEffect(() => {
+    if (!flipDeltas) {
+      return;
+    }
+
+    // Clear on the next frame, so the browser paints the inverted position before
+    // the tiles transition to their slots. The timeout is a floor, not a duplicate:
+    // where rAF is starved (hidden tab, some embedded webviews) the tiles would
+    // otherwise stay stuck at the inverted offset instead of animating home.
+    const frameId = window.requestAnimationFrame(() => setFlipDeltas(null));
+    const timeoutId = window.setTimeout(() => setFlipDeltas(null), 64);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [flipDeltas]);
 
   function resolveDropIndex(overId: string) {
     const direct = movableClockIds.indexOf(overId);
@@ -108,6 +165,7 @@ export function ClockWall({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    snapshotTileRects();
     const { active, over } = event;
     setActiveDragId(null);
     setDragDelta(null);
@@ -200,6 +258,7 @@ export function ClockWall({
       onDragMove={(event) => setDragDelta(event.delta)}
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
+        snapshotTileRects();
         setActiveDragId(null);
         setDragDelta(null);
       }}
@@ -221,6 +280,8 @@ export function ClockWall({
               key={clock.id}
               clock={clock}
               dragRotation={dragRotation}
+              flipDelta={flipDeltas?.get(clock.id) ?? null}
+              registerTileNode={registerTileNode}
               coDragOffset={
                 !clock.pinned &&
                 activeDragId !== null &&
@@ -278,17 +339,19 @@ type SortableClockTileProps = {
   children: ReactNode;
   coDragOffset: { x: number; y: number } | null;
   dragRotation: number;
+  flipDelta: { x: number; y: number } | null;
+  registerTileNode: (id: string, node: HTMLElement | null) => void;
 };
 
-function SortableClockTile({ clock, children, coDragOffset, dragRotation }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragOffset, dragRotation, flipDelta, registerTileNode }: SortableClockTileProps) {
   if (clock.pinned) {
-    return <PinnedClockTile clock={clock}>{children}</PinnedClockTile>;
+    return <PinnedClockTile clock={clock} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock} coDragOffset={coDragOffset} dragRotation={dragRotation}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragOffset={coDragOffset} dragRotation={dragRotation} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</MovableClockTile>;
 }
 
-function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNode }) {
+function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<SortableClockTileProps, "clock" | "children" | "flipDelta" | "registerTileNode">) {
   const { setNodeRef, transform, transition } = useSortable({
     id: clock.id,
     disabled: true,
@@ -297,14 +360,24 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     },
   });
+  const setTileNodeRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    registerTileNode(clock.id, node);
+  }, [clock.id, registerTileNode, setNodeRef]);
+  // dnd-kit's getTransition disabledTransition branch returns a truthy 0ms value.
+  const safeTransition = transition && /\b0ms\b/.test(transition)
+    ? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+    : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+    transform: flipDelta
+      ? `translate3d(${flipDelta.x}px, ${flipDelta.y}px, 0)`
+      : CSS.Transform.toString(transform),
+    transition: flipDelta ? "none" : safeTransition,
   } as CSSProperties;
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setTileNodeRef}
       className="sortable-clock sortable-clock--pinned sortable-clock--search-transition"
       style={style}
       aria-disabled
@@ -314,26 +387,38 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   );
 }
 
-function MovableClockTile({ clock, children, coDragOffset, dragRotation }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragOffset, dragRotation, flipDelta, registerTileNode }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
-    animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
+    animateLayoutChanges: () => false,
     transition: {
       duration: 260,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     },
   });
-  const transformValue = coDragOffset
-    ? `translate3d(${coDragOffset.x}px, ${coDragOffset.y}px, 0)`
-    : CSS.Transform.toString(transform);
+  const setTileNodeRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    registerTileNode(clock.id, node);
+  }, [clock.id, registerTileNode, setNodeRef]);
+  const transformValue = flipDelta
+    ? `translate3d(${flipDelta.x}px, ${flipDelta.y}px, 0)`
+    : coDragOffset
+      ? `translate3d(${coDragOffset.x}px, ${coDragOffset.y}px, 0)`
+      : CSS.Transform.toString(transform);
+  // dnd-kit's getTransition disabledTransition branch returns a truthy 0ms value.
+  const safeTransition = transition && /\b0ms\b/.test(transition)
+    ? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+    : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
   const style = {
     "--drag-rotation": `${isDragging || coDragOffset ? dragRotation : 0}deg`,
     transform: transformValue,
-    transition: coDragOffset
+    transition: flipDelta
       ? "none"
-      : isDragging
-        ? undefined
-        : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+      : coDragOffset
+        ? "none"
+        : isDragging
+          ? undefined
+          : safeTransition,
   } as CSSProperties;
   const className = [
     "sortable-clock",
@@ -346,7 +431,7 @@ function MovableClockTile({ clock, children, coDragOffset, dragRotation }: Sorta
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setTileNodeRef}
       className={className}
       style={style}
       {...attributes}
