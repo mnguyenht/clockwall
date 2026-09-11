@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { LazyMotion, domAnimation } from "framer-motion";
+import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
@@ -208,24 +208,26 @@ export function App() {
         onToggleClockSelection={toggleClockSelection}
         onClearSelection={() => setSelectedClockIds([])}
       />
-        {selectedClockIds.length > 0 ? (
-          <SelectionBar
-            count={selectedClockIds.length}
-            onPin={() => {
-              setClocksPinned(selectedClockIds, true);
-              setSelectedClockIds([]);
-            }}
-            onUnpin={() => {
-              setClocksPinned(selectedClockIds, false);
-              setSelectedClockIds([]);
-            }}
-            onDelete={() => {
-              deleteClocks(selectedClockIds);
-              setSelectedClockIds([]);
-            }}
-            onClear={() => setSelectedClockIds([])}
-          />
-        ) : null}
+        <AnimatePresence>
+          {selectedClockIds.length > 0 ? (
+            <SelectionBar
+              count={selectedClockIds.length}
+              onPin={() => {
+                setClocksPinned(selectedClockIds, true);
+                setSelectedClockIds([]);
+              }}
+              onUnpin={() => {
+                setClocksPinned(selectedClockIds, false);
+                setSelectedClockIds([]);
+              }}
+              onDelete={() => {
+                deleteClocks(selectedClockIds);
+                setSelectedClockIds([]);
+              }}
+              onClear={() => setSelectedClockIds([])}
+            />
+          ) : null}
+        </AnimatePresence>
       <ClockFormDialog
         open={clockDialogOpen}
         clock={editingClock}

@@ -78,6 +78,7 @@ export function ClockWall({
     : board.clocks;
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
   const sortableItems = movableClockIds;
+  const dragRotation = useVelocityRotation(activeDragId !== null, dragDelta?.x ?? 0);
 
   function resolveDropIndex(overId: string) {
     const direct = movableClockIds.indexOf(overId);
@@ -219,6 +220,7 @@ export function ClockWall({
             <SortableClockTile
               key={clock.id}
               clock={clock}
+              dragRotation={dragRotation}
               coDragOffset={
                 !clock.pinned &&
                 activeDragId !== null &&
@@ -275,14 +277,15 @@ type SortableClockTileProps = {
   clock: Clock;
   children: ReactNode;
   coDragOffset: { x: number; y: number } | null;
+  dragRotation: number;
 };
 
-function SortableClockTile({ clock, children, coDragOffset }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragOffset, dragRotation }: SortableClockTileProps) {
   if (clock.pinned) {
     return <PinnedClockTile clock={clock}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock} coDragOffset={coDragOffset}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragOffset={coDragOffset} dragRotation={dragRotation}>{children}</MovableClockTile>;
 }
 
 function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNode }) {
@@ -311,7 +314,7 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   );
 }
 
-function MovableClockTile({ clock, children, coDragOffset }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragOffset, dragRotation }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
     animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
@@ -323,9 +326,8 @@ function MovableClockTile({ clock, children, coDragOffset }: SortableClockTilePr
   const transformValue = coDragOffset
     ? `translate3d(${coDragOffset.x}px, ${coDragOffset.y}px, 0)`
     : CSS.Transform.toString(transform);
-  const dragRotation = useVelocityRotation(isDragging, transform?.x ?? 0);
   const style = {
-    "--drag-rotation": `${dragRotation}deg`,
+    "--drag-rotation": `${isDragging || coDragOffset ? dragRotation : 0}deg`,
     transform: transformValue,
     transition: coDragOffset
       ? "none"

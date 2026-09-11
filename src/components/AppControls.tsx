@@ -280,7 +280,7 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row">
+              <div className="settings-row settings-row--anchor">
                 <div className="settings-row__copy">
                   <Label>Main timezone</Label>
                 </div>
@@ -292,7 +292,7 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row settings-row--stacked">
+              <div className="settings-row">
                 <div className="settings-row__copy">
                   <Label>Awake hours</Label>
                 </div>
@@ -319,7 +319,6 @@ export function AppControls({
                 <NameModeGroup
                   value={defaultNameMode}
                   onChange={onDefaultNameModeChange}
-                  previewTimezone={primaryTimezone}
                 />
               </div>
 

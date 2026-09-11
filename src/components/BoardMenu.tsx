@@ -1,4 +1,5 @@
 import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { Board } from "../types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -72,52 +73,77 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
               onClick={() => selectBoard(board.id)}
             >
               <span>{getCompactBoardName(board.name)}</span>
-              {deleteMode && canDelete ? (
-                <span
-                  className="board-menu__delete"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Delete ${board.name}`}
-                  onClick={(event) => deleteBoard(event, board.id)}
-                  onKeyDown={(event) => handleDeleteKeyDown(event, board.id)}
-                >
-                  <Trash2 size={15} />
-                </span>
-              ) : null}
+              <AnimatePresence>
+                {deleteMode && canDelete ? (
+                  <m.span
+                    key="delete"
+                    className="board-menu__delete"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Delete ${board.name}`}
+                    onClick={(event) => deleteBoard(event, board.id)}
+                    onKeyDown={(event) => handleDeleteKeyDown(event, board.id)}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    <Trash2 size={15} />
+                  </m.span>
+                ) : null}
+              </AnimatePresence>
             </button>
           ))}
         </div>
         <div className="board-menu__island">
-          {deleteMode ? (
-            <button type="button" className="board-menu__action" onClick={() => setDeleteMode(false)}>
-              <Check size={15} />
-              Done
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="board-menu__action"
-                onClick={() => {
-                  setOpen(false);
-                  onCreate();
-                }}
+          <AnimatePresence mode="wait">
+            {deleteMode ? (
+              <m.div
+                key="delete"
+                className="board-menu__island-state"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.14, ease: "easeOut" }}
               >
-                <Plus size={15} />
-                New list
-              </button>
-              <button
-                type="button"
-                className="board-menu__action board-menu__action--danger"
-                disabled={!canDelete}
-                title={canDelete ? undefined : "A board is required"}
-                onClick={() => setDeleteMode(true)}
+                <button type="button" className="board-menu__action" onClick={() => setDeleteMode(false)}>
+                  <Check size={15} />
+                  Done
+                </button>
+              </m.div>
+            ) : (
+              <m.div
+                key="normal"
+                className="board-menu__island-state"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.14, ease: "easeOut" }}
               >
-                <Trash2 size={15} />
-                Delete lists
-              </button>
-            </>
-          )}
+                <button
+                  type="button"
+                  className="board-menu__action"
+                  onClick={() => {
+                    setOpen(false);
+                    onCreate();
+                  }}
+                >
+                  <Plus size={15} />
+                  New list
+                </button>
+                <button
+                  type="button"
+                  className="board-menu__action board-menu__action--danger"
+                  disabled={!canDelete}
+                  title={canDelete ? undefined : "A board is required"}
+                  onClick={() => setDeleteMode(true)}
+                >
+                  <Trash2 size={15} />
+                  Delete
+                </button>
+              </m.div>
+            )}
+          </AnimatePresence>
         </div>
       </PopoverContent>
     </Popover>
