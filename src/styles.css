@@ -144,6 +144,7 @@ select {
 
 .clock-wall--dark-digital {
   align-items: flex-start;
+  padding: clamp(34px, 7vh, 76px) 0 clamp(8px, 2vw, 28px);
 }
 
 .clock-tile {
@@ -181,7 +182,8 @@ select {
 }
 
 .sortable-clock--co-dragging {
-  opacity: 0.55;
+  z-index: 7;
+  opacity: 0.92;
 }
 
 .sortable-clock:focus:not(:focus-visible) {
@@ -228,7 +230,7 @@ select {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     0 28px 70px rgba(0, 0, 0, 0.54),
-    0 0 60px color-mix(in srgb, var(--digital-glow) 26%, transparent);
+    0 0 30px color-mix(in srgb, var(--digital-glow) 14%, transparent);
   backdrop-filter: blur(44px) saturate(168%);
 }
 
@@ -295,19 +297,19 @@ select {
   height: 214px;
   justify-content: space-between;
   padding: 20px;
-  border: 1px solid color-mix(in srgb, var(--digital-glow) 42%, rgba(255, 255, 255, 0.18));
+  border: 1px solid color-mix(in srgb, var(--digital-glow) 26%, rgba(255, 255, 255, 0.14));
   background: rgba(8, 13, 15, 0.76);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
     0 22px 55px rgba(0, 0, 0, 0.38),
-    0 0 44px color-mix(in srgb, var(--digital-glow) 24%, transparent);
+    0 0 22px color-mix(in srgb, var(--digital-glow) 10%, transparent);
   backdrop-filter: blur(34px) saturate(155%);
 }
 
 .clock-tile--selected {
-  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
-  outline-offset: 5px;
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 0;
 }
 
 .clock-tile__meta,
@@ -316,18 +318,24 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  color: color-mix(in srgb, var(--digital-glow) 28%, rgba(239, 255, 248, 0.82));
+  color: rgba(233, 248, 243, 0.58);
   font-size: 0.76rem;
   font-weight: 600;
   line-height: 1.2;
 }
 
 .clock-tile__footer {
+  height: 34px;
   align-items: flex-end;
 }
 
 .clock-tile__footer span:first-child {
+  display: -webkit-box;
   max-width: 112px;
+  overflow: hidden;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .clock-status-stack {
@@ -447,7 +455,7 @@ select {
 }
 
 .clock-tile--digital .clock-tile__name {
-  color: color-mix(in srgb, var(--digital-glow) 24%, #f7fffc);
+  color: rgba(246, 255, 252, 0.9);
   font-size: 0.78rem;
   text-transform: uppercase;
 }
@@ -602,11 +610,11 @@ select {
 }
 
 .analog-clock__availability-sector--outline {
-  fill: var(--availability-ink);
+  fill: none;
   stroke: var(--availability-ink);
-  stroke-width: 10px;
+  stroke-width: 2px;
   stroke-linejoin: round;
-  opacity: 0.12;
+  opacity: 0.34;
 }
 
 .analog-clock__mark {
@@ -864,9 +872,10 @@ select {
 }
 
 .search-chip--open .search-chip__field {
-  width: 184px;
+  width: 196px;
   opacity: 1;
-  padding: 0 12px 0 10px;
+  gap: 10px;
+  padding: 0 14px 0 13px;
   transform: translateX(0) scaleX(1);
   border: 1px solid var(--control-border);
   background: var(--control-surface);
@@ -874,8 +883,8 @@ select {
 }
 
 .app-shell--dark-digital .search-chip--open .search-chip__field {
-  background: color-mix(in srgb, var(--digital-glow) 10%, #0b1215);
-  border-color: color-mix(in srgb, var(--digital-glow) 42%, rgba(255, 255, 255, 0.22));
+  background: var(--control-surface);
+  border-color: var(--control-border);
 }
 
 .search-chip__icon {
@@ -1050,6 +1059,97 @@ select {
   max-width: 136px !important;
 }
 
+.board-menu {
+  z-index: 50;
+  width: 136px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--control-surface);
+  box-shadow: 0 18px 40px rgba(25, 23, 19, 0.18);
+  color: var(--control-text);
+  padding: 6px;
+}
+
+.board-menu[data-state="open"] {
+  animation: floating-menu-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.board-menu[data-state="closed"] {
+  animation: floating-menu-out 110ms ease-in;
+}
+
+.board-menu__list {
+  display: grid;
+}
+
+.board-menu__item,
+.board-menu__action {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--control-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 620;
+  outline: none;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.board-menu__item {
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.board-menu__item > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-menu__item:hover,
+.board-menu__action:hover:not(:disabled),
+.board-menu__item--active {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.board-menu__delete {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+  color: #b84035;
+}
+
+.board-menu__delete:hover {
+  background: color-mix(in srgb, #c0453a 14%, transparent);
+}
+
+.board-menu__island {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  border-top: 1px solid var(--control-border);
+  padding-top: 6px;
+}
+
+.board-menu__action--danger {
+  color: #b84035;
+}
+
+.board-menu__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .app-shell--dark-digital .select-content {
   background: var(--control-surface);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
@@ -1138,16 +1238,19 @@ select {
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--control-border);
+  gap: 10px;
+  padding: 9px 12px 9px 20px;
+  border: 1px solid color-mix(in srgb, var(--control-border) 72%, transparent);
   border-radius: 999px;
-  background: var(--control-surface);
+  background: color-mix(in srgb, var(--control-surface) 68%, transparent);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
   box-shadow: var(--control-shadow);
   translate: -50% 0;
 }
 
 .selection-bar__count {
+  margin-right: 4px;
   font-size: 0.8rem;
   font-weight: 800;
   white-space: nowrap;
@@ -1202,6 +1305,8 @@ select {
   top: 50%;
   left: 50%;
   width: min(430px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   border: 1px solid var(--control-border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--control-bg) 84%, #ffffff);
@@ -1210,6 +1315,11 @@ select {
   padding: 24px;
   transform: translate(-50%, -50%);
   will-change: opacity, scale, translate;
+  scrollbar-width: none;
+}
+
+.dialog-content::-webkit-scrollbar {
+  display: none;
 }
 
 .dialog-content[data-state="open"] {
@@ -1238,7 +1348,7 @@ select {
 
 .settings-page {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .settings-title {
@@ -1305,7 +1415,9 @@ select {
 
 .glow-palette {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: nowrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -1388,28 +1500,14 @@ select {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-}
-
-.name-mode-group__pill {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  width: calc(100% / 3);
-  height: 100%;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  pointer-events: none;
-  transition: transform 260ms cubic-bezier(0.2, 1.25, 0.35, 1);
+  gap: 6px;
 }
 
 .name-mode-option {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--control-border);
-  border-radius: 0;
-  margin-left: -1px;
+  border-radius: 8px;
   background: transparent;
   color: var(--control-text);
   cursor: pointer;
@@ -1417,28 +1515,17 @@ select {
   font-weight: 750;
   padding: 7px 8px;
   text-overflow: ellipsis;
+  transition: background-color 120ms ease, border-color 120ms ease;
   white-space: nowrap;
 }
 
-.name-mode-option:first-of-type {
-  margin-left: 0;
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-}
-
-.name-mode-option:last-of-type {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+.name-mode-option:hover {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
 .name-mode-option--active {
-  z-index: 2;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
-.name-mode-option > span:last-child {
-  position: relative;
-  z-index: 1;
 }
 
 .availability-editor {
@@ -1977,5 +2064,12 @@ select {
 
 .settings-timezone-picker {
   position: relative;
-  width: 100%;
+  width: 190px;
+  flex: 0 0 190px;
+}
+
+.settings-timezone-picker .timezone-results {
+  right: 0;
+  left: auto;
+  width: 340px;
 }

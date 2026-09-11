@@ -53,6 +53,7 @@ export function App() {
     setActiveBoardId,
     setTheme,
     createBoard,
+    deleteBoard,
     setDisplaySeconds,
     setDarkGlow,
     setPrimaryTimezone,
@@ -139,7 +140,15 @@ export function App() {
 
   return (
     <LazyMotion features={domAnimation} strict>
-      <div className={`app-shell app-shell--${theme}`} style={appStyle}>
+      <div
+        className={`app-shell app-shell--${theme}`}
+        style={appStyle}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget && selectedClockIds.length > 0) {
+            setSelectedClockIds([]);
+          }
+        }}
+      >
       <AppControls
         boards={state.boards}
         activeBoardId={activeBoard.id}
@@ -152,6 +161,7 @@ export function App() {
         onBoardChange={setActiveBoardId}
         onThemeChange={setTheme}
         onCreateBoard={createBoard}
+        onDeleteBoard={deleteBoard}
         displaySeconds={state.settings.displaySeconds}
         onDisplaySecondsChange={setDisplaySeconds}
         onDarkGlowChange={setDarkGlow}
@@ -196,6 +206,7 @@ export function App() {
         onMoveClockToPosition={moveClockToPosition}
         selectedClockIds={selectedClockIds}
         onToggleClockSelection={toggleClockSelection}
+        onClearSelection={() => setSelectedClockIds([])}
       />
         {selectedClockIds.length > 0 ? (
           <SelectionBar

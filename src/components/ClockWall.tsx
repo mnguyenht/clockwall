@@ -38,6 +38,7 @@ type ClockWallProps = {
   onMoveClockToPosition: (clockId: string, position: number) => void;
   selectedClockIds: string[];
   onToggleClockSelection: (clockId: string) => void;
+  onClearSelection: () => void;
 };
 
 export function ClockWall({
@@ -56,8 +57,10 @@ export function ClockWall({
   onMoveClockToPosition,
   selectedClockIds,
   onToggleClockSelection,
+  onClearSelection,
 }: ClockWallProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [dragDelta, setDragDelta] = useState<{ x: number; y: number } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -106,6 +109,7 @@ export function ClockWall({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     setActiveDragId(null);
+    setDragDelta(null);
 
     if (!over) {
       return;
@@ -188,24 +192,41 @@ export function ClockWall({
       sensors={sensors}
       collisionDetection={closestCenter}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-      onDragStart={({ active }) => setActiveDragId(String(active.id))}
+      onDragStart={({ active }) => {
+        setActiveDragId(String(active.id));
+        setDragDelta({ x: 0, y: 0 });
+      }}
+      onDragMove={(event) => setDragDelta(event.delta)}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveDragId(null)}
+      onDragCancel={() => {
+        setActiveDragId(null);
+        setDragDelta(null);
+      }}
     >
       <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
-        <main className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''}`} aria-label={`${board.name} clocks`}>
+        <main
+          className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''}`}
+          aria-label={`${board.name} clocks`}
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget && selectedClockIds.length > 0) {
+              onClearSelection();
+            }
+          }}
+        >
           {visibleClocks.map((clock) => {
             const clockIndex = board.clocks.findIndex((candidate) => candidate.id === clock.id);
             return (
             <SortableClockTile
               key={clock.id}
               clock={clock}
-              coDragging={
+              coDragOffset={
                 !clock.pinned &&
                 activeDragId !== null &&
                 activeDragId !== clock.id &&
                 selectedClockIds.includes(activeDragId) &&
                 selectedClockIds.includes(clock.id)
+                  ? dragDelta
+                  : null
               }
             >
               <ClockTile
@@ -253,15 +274,15 @@ function clockMatchesSearch(clock: Clock, now: Date, query: string) {
 type SortableClockTileProps = {
   clock: Clock;
   children: ReactNode;
-  coDragging: boolean;
+  coDragOffset: { x: number; y: number } | null;
 };
 
-function SortableClockTile({ clock, children, coDragging }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragOffset }: SortableClockTileProps) {
   if (clock.pinned) {
     return <PinnedClockTile clock={clock}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock} coDragging={coDragging}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragOffset={coDragOffset}>{children}</MovableClockTile>;
 }
 
 function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNode }) {
@@ -290,7 +311,7 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   );
 }
 
-function MovableClockTile({ clock, children, coDragging }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragOffset }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
     animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
@@ -299,17 +320,23 @@ function MovableClockTile({ clock, children, coDragging }: SortableClockTileProp
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     },
   });
-  const transformValue = CSS.Transform.toString(transform);
+  const transformValue = coDragOffset
+    ? `translate3d(${coDragOffset.x}px, ${coDragOffset.y}px, 0)`
+    : CSS.Transform.toString(transform);
   const dragRotation = useVelocityRotation(isDragging, transform?.x ?? 0);
   const style = {
     "--drag-rotation": `${dragRotation}deg`,
     transform: transformValue,
-    transition: isDragging ? undefined : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+    transition: coDragOffset
+      ? "none"
+      : isDragging
+        ? undefined
+        : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)",
   } as CSSProperties;
   const className = [
     "sortable-clock",
     isDragging ? "sortable-clock--dragging" : "",
-    coDragging ? "sortable-clock--co-dragging" : "",
+    coDragOffset ? "sortable-clock--co-dragging" : "",
   ]
     .filter(Boolean)
     .join(" ");

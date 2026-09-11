@@ -10,8 +10,8 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
+import { BoardMenu } from "./BoardMenu";
 import { GlowPaletteControl } from "./GlowPaletteControl";
 import { NameModeGroup } from "./NameModeGroup";
 import { TimeRangeField } from "./TimeRangeField";
@@ -32,6 +32,7 @@ type AppControlsProps = {
   onBoardChange: (boardId: string) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onCreateBoard: (name: string) => void;
+  onDeleteBoard: (boardId: string) => void;
   onDisplaySecondsChange: (displaySeconds: boolean) => void;
   onDarkGlowChange: (color: string) => void;
   onPrimaryTimezoneChange: (timezone: string) => void;
@@ -44,11 +45,6 @@ type AppControlsProps = {
   onExportStarted: () => void;
   onImportBoard: (raw: string) => void;
 };
-
-function getCompactBoardName(name: string) {
-  const maxLength = 13;
-  return name.length > maxLength ? `${name.slice(0, maxLength - 3)}...` : name;
-}
 
 export function AppControls({
   boards,
@@ -65,6 +61,7 @@ export function AppControls({
   onBoardChange,
   onThemeChange,
   onCreateBoard,
+  onDeleteBoard,
   onDisplaySecondsChange,
   onDarkGlowChange,
   onPrimaryTimezoneChange,
@@ -83,15 +80,6 @@ export function AppControls({
   const [importError, setImportError] = useState<string | null>(null);
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
-
-  function handleBoardChange(value: string) {
-    if (value === "__create") {
-      setCreateBoardOpen(true);
-      return;
-    }
-
-    onBoardChange(value);
-  }
 
   function handleCreateBoard(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,9 +100,16 @@ export function AppControls({
     }
   }, [searchOpen]);
 
+  useEffect(() => {
+    if (!searchOpen) {
+      onSearchQueryChange("");
+    }
+  }, [searchOpen, onSearchQueryChange]);
+
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
+      onSearchQueryChange("");
       onSearchOpenChange(false);
     }
   }
@@ -157,19 +152,13 @@ export function AppControls({
   return (
     <>
       <div className="corner-control corner-control--left">
-        <Select value={activeBoardId} onValueChange={handleBoardChange}>
-          <SelectTrigger aria-label="Board">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="board-select-content">
-            {boards.map((board) => (
-              <SelectItem key={board.id} value={board.id} title={board.name}>
-                {getCompactBoardName(board.name)}
-              </SelectItem>
-            ))}
-            <SelectItem value="__create">New board</SelectItem>
-          </SelectContent>
-        </Select>
+        <BoardMenu
+          boards={boards}
+          activeBoardId={activeBoardId}
+          onSelect={onBoardChange}
+          onCreate={() => setCreateBoardOpen(true)}
+          onDelete={onDeleteBoard}
+        />
       </div>
 
       <Dialog open={createBoardOpen} onOpenChange={setCreateBoardOpen}>
@@ -210,7 +199,12 @@ export function AppControls({
           <button
             type="button"
             className="search-toggle"
-            onClick={() => onSearchOpenChange(!searchOpen)}
+            onClick={() => {
+              if (searchOpen) {
+                onSearchQueryChange("");
+              }
+              onSearchOpenChange(!searchOpen);
+            }}
             aria-label={searchOpen ? "Close search" : "Open search"}
             title={searchOpen ? "Close search" : "Search"}
           >
@@ -230,9 +224,8 @@ export function AppControls({
               autoCapitalize="none"
               spellCheck={false}
               onBlur={() => {
-                if (!searchQuery.trim()) {
-                  onSearchOpenChange(false);
-                }
+                onSearchQueryChange("");
+                onSearchOpenChange(false);
               }}
             />
             {searchQuery ? (
@@ -287,10 +280,9 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row settings-row--stacked">
+              <div className="settings-row">
                 <div className="settings-row__copy">
                   <Label>Main timezone</Label>
-                  <p>Your central reference clock for availability.</p>
                 </div>
                 <TimezonePicker
                   id="primary-timezone"
@@ -303,7 +295,6 @@ export function AppControls({
               <div className="settings-row settings-row--stacked">
                 <div className="settings-row__copy">
                   <Label>Awake hours</Label>
-                  <p>Outside these hours availability shows as an outline.</p>
                 </div>
                 <TimeRangeField
                   start={awakeStart}
@@ -313,7 +304,7 @@ export function AppControls({
                 />
               </div>
 
-              <div className="settings-row settings-row--stacked">
+              <div className="settings-row">
                 <div className="settings-row__copy">
                   <Label htmlFor="dark-glow">Digital glow</Label>
                 </div>
@@ -335,8 +326,7 @@ export function AppControls({
               <div className="settings-row">
                 <div className="settings-row__copy">
                   <Label>Import & Export</Label>
-                  <p>Download and import your clocks on a different machine.</p>
-                  {importError ? <p className="settings-error">{importError}</p> : null}
+                  {importError ? <span className="settings-error">{importError}</span> : null}
                 </div>
                 <div className="settings-actions">
                   <Button

@@ -156,6 +156,27 @@ export function useAppState() {
     }));
   }
 
+  function deleteBoard(boardId: string) {
+    setState((current) => {
+      if (current.boards.length <= 1) {
+        return current;
+      }
+
+      const deletedIndex = current.boards.findIndex((board) => board.id === boardId);
+      if (deletedIndex === -1) {
+        return current;
+      }
+
+      const boards = current.boards.filter((board) => board.id !== boardId);
+      const activeBoardId =
+        current.activeBoardId === boardId
+          ? current.boards[deletedIndex - 1]?.id ?? boards[0].id
+          : current.activeBoardId;
+
+      return { ...current, activeBoardId, boards };
+    });
+  }
+
   function setDisplaySeconds(displaySeconds: boolean) {
     setState((current) => ({
       ...current,
@@ -425,6 +446,7 @@ export function useAppState() {
     setActiveBoardId,
     setTheme,
     createBoard,
+    deleteBoard,
     setDisplaySeconds,
     setLightBackground,
     setDarkGlow,

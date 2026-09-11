@@ -20,11 +20,9 @@ const AVAILABILITY_RADIUS = 62;
 // The band's rounded corners come from a thick round-joined stroke, whose radius is
 // half the stroke width. A thin path plus a thick stroke therefore rounds far more
 // than a thick path plus a thin one, at the same total width.
-const AVAILABILITY_BAND = 4;
-
-function ringSectorPath(startAngle: number, sizeAngle: number) {
-  const inner = AVAILABILITY_RADIUS - AVAILABILITY_BAND / 2;
-  const outer = AVAILABILITY_RADIUS + AVAILABILITY_BAND / 2;
+function ringSectorPath(startAngle: number, sizeAngle: number, band: number) {
+  const inner = AVAILABILITY_RADIUS - band / 2;
+  const outer = AVAILABILITY_RADIUS + band / 2;
   // One SVG arc command cannot express a whole turn, so stop a hair short of it.
   const size = Math.min(sizeAngle, 359.9);
   const endAngle = startAngle + size;
@@ -72,13 +70,26 @@ export function AnalogClock({
     <div className={`analog-clock analog-clock--${period.toLowerCase()}`} aria-hidden='true'>
       {availabilityArcs.length > 0 ? (
         <svg className="analog-clock__availability" viewBox="0 0 154 154">
-          {availabilityArcs.map((arc, index) => (
-            <path
-              className={`analog-clock__availability-sector analog-clock__availability-sector--${arc.variant}`}
-              d={ringSectorPath(arc.startAngle, arc.sizeAngle)}
-              key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
-            />
-          ))}
+          {availabilityArcs.map((arc, index) => {
+            const band = arc.variant === "active" ? 4 : 12;
+            const strokeWidth = arc.variant === "active" ? 10 : 2;
+            const capAngle = (strokeWidth / 2 / AVAILABILITY_RADIUS) * (180 / Math.PI);
+            const firstArc = index === 0;
+            const lastArc = index === availabilityArcs.length - 1;
+            const startAngle = arc.startAngle + (firstArc ? capAngle : 0);
+            const sizeAngle = Math.max(
+              0,
+              arc.sizeAngle - (firstArc ? capAngle : 0) - (lastArc ? capAngle : 0),
+            );
+
+            return (
+              <path
+                className={`analog-clock__availability-sector analog-clock__availability-sector--${arc.variant}`}
+                d={ringSectorPath(startAngle, sizeAngle, band)}
+                key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
+              />
+            );
+          })}
         </svg>
       ) : null}
       <span className="analog-clock__mark analog-clock__mark--12" />
