@@ -29,6 +29,7 @@ type ClockWallProps = {
   searchQuery: string;
   displaySeconds: boolean;
   primaryTimezone: string;
+  awakeHours: { start: string; end: string };
   onEditClock: (clock: Clock) => void;
   onDuplicateClock: (clockId: string) => void;
   onDeleteClock: (clockId: string) => void;
@@ -46,6 +47,7 @@ export function ClockWall({
   searchQuery,
   displaySeconds,
   primaryTimezone,
+  awakeHours,
   onEditClock,
   onDuplicateClock,
   onDeleteClock,
@@ -165,6 +167,7 @@ export function ClockWall({
                 theme={theme}
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
+                awakeHours={awakeHours}
                 onEdit={onEditClock}
                 onDuplicate={onDuplicateClock}
                 onDelete={onDeleteClock}
@@ -228,7 +231,12 @@ function PinnedClockTile({ clock, children }: { clock: Clock; children: ReactNod
   } as CSSProperties;
 
   return (
-    <div ref={setNodeRef} className="sortable-clock sortable-clock--pinned sortable-clock--search-transition" style={style} aria-disabled>
+    <div
+      ref={setNodeRef}
+      className={`sortable-clock sortable-clock--${clock.size ?? "md"} sortable-clock--pinned sortable-clock--search-transition`}
+      style={style}
+      aria-disabled
+    >
       {children}
     </div>
   );
@@ -252,6 +260,7 @@ function MovableClockTile({ clock, children }: SortableClockTileProps) {
   } as CSSProperties;
   const className = [
     "sortable-clock",
+    `sortable-clock--${clock.size ?? "md"}`,
     isDragging ? "sortable-clock--dragging" : "",
   ]
     .filter(Boolean)

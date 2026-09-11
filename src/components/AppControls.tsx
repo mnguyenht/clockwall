@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "./ui/switch";
 import { GlowPaletteControl } from "./GlowPaletteControl";
 import { TimezonePicker } from "./TimezonePicker";
+import { TimeStepperField } from "./ClockFormDialog";
 
 type AppControlsProps = {
   boards: Board[];
@@ -22,6 +23,8 @@ type AppControlsProps = {
   displaySeconds: boolean;
   darkGlow: string;
   primaryTimezone: string;
+  awakeStart: string;
+  awakeEnd: string;
   searchQuery: string;
   searchOpen: boolean;
   onBoardChange: (boardId: string) => void;
@@ -30,6 +33,7 @@ type AppControlsProps = {
   onDisplaySecondsChange: (displaySeconds: boolean) => void;
   onDarkGlowChange: (color: string) => void;
   onPrimaryTimezoneChange: (timezone: string) => void;
+  onAwakeHoursChange: (start: string, end: string) => void;
   onAddClock: () => void;
   onSearchOpenChange: (open: boolean) => void;
   onSearchQueryChange: (query: string) => void;
@@ -50,6 +54,8 @@ export function AppControls({
   displaySeconds,
   darkGlow,
   primaryTimezone,
+  awakeStart,
+  awakeEnd,
   searchQuery,
   searchOpen,
   onBoardChange,
@@ -58,6 +64,7 @@ export function AppControls({
   onDisplaySecondsChange,
   onDarkGlowChange,
   onPrimaryTimezoneChange,
+  onAwakeHoursChange,
   onAddClock,
   onSearchOpenChange,
   onSearchQueryChange,
@@ -286,6 +293,25 @@ export function AppControls({
                   onChange={onPrimaryTimezoneChange}
                   className="settings-timezone-picker"
                 />
+              </div>
+
+              <div className="settings-row">
+                <div className="settings-row__copy">
+                  <Label>Awake hours</Label>
+                  <p>Outside these hours availability shows as an outline.</p>
+                </div>
+                <div className="time-range-fields">
+                  <TimeStepperField
+                    label="Start"
+                    value={awakeStart}
+                    onChange={(start) => onAwakeHoursChange(start, awakeEnd)}
+                  />
+                  <TimeStepperField
+                    label="End"
+                    value={awakeEnd}
+                    onChange={(end) => onAwakeHoursChange(awakeStart, end)}
+                  />
+                </div>
               </div>
 
               <div className="settings-row">

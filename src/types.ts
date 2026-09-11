@@ -8,6 +8,7 @@ export type Clock = {
   locationName: string;
   secondaryName?: string;
   nameMode: ClockNameMode;
+  size?: "sm" | "md" | "lg";
   pinned?: boolean;
   color?: string;
   workHours?: {
@@ -43,5 +44,7 @@ export type AppState = {
     darkGlow: string;
     primaryTimezone: string;
     theme: ThemeMode;
+    awakeStart: string;
+    awakeEnd: string;
   };
 };

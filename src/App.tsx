@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
 import { ClockWall } from "./components/ClockWall";
+import { SelectionBar } from "./components/SelectionBar";
 import { getTimezoneLabel } from "./data/timezones";
 import { useAppState } from "./hooks/useAppState";
 import { useNow } from "./hooks/useNow";
@@ -44,13 +45,16 @@ export function App() {
     setDisplaySeconds,
     setDarkGlow,
     setPrimaryTimezone,
+    setAwakeHours,
     addClock,
     updateClock,
     deleteClock,
+    deleteClocks,
     duplicateClock,
     reorderClocks,
     moveClockToPosition,
     toggleClockPinned,
+    setClocksPinned,
     exportActiveBoardDeck,
     importBoardDeck,
   } = useAppState();
@@ -87,6 +91,12 @@ export function App() {
         return;
       }
 
+      if (event.key === "Escape" && selectedClockIds.length > 0) {
+        event.preventDefault();
+        setSelectedClockIds([]);
+        return;
+      }
+
       if (event.key === "/") {
         event.preventDefault();
         setSearchOpen(true);
@@ -101,7 +111,11 @@ export function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [clockDialogOpen]);
+  }, [clockDialogOpen, selectedClockIds]);
+
+  useEffect(() => {
+    setSelectedClockIds([]);
+  }, [activeBoard.id]);
 
   useEffect(() => {
     if (!toast) {
@@ -120,6 +134,8 @@ export function App() {
         theme={theme}
         darkGlow={state.settings.darkGlow}
         primaryTimezone={state.settings.primaryTimezone}
+        awakeStart={state.settings.awakeStart}
+        awakeEnd={state.settings.awakeEnd}
         onBoardChange={setActiveBoardId}
         onThemeChange={setTheme}
         onCreateBoard={createBoard}
@@ -127,6 +143,7 @@ export function App() {
         onDisplaySecondsChange={setDisplaySeconds}
         onDarkGlowChange={setDarkGlow}
         onPrimaryTimezoneChange={setPrimaryTimezone}
+        onAwakeHoursChange={setAwakeHours}
         onAddClock={openAddClock}
         searchQuery={searchQuery}
         searchOpen={searchOpen}
@@ -156,6 +173,7 @@ export function App() {
         searchQuery={searchQuery}
         displaySeconds={state.settings.displaySeconds}
         primaryTimezone={state.settings.primaryTimezone}
+        awakeHours={{ start: state.settings.awakeStart, end: state.settings.awakeEnd }}
         onEditClock={openEditClock}
         onDuplicateClock={duplicateClock}
         onDeleteClock={deleteClock}
@@ -164,6 +182,22 @@ export function App() {
         onMoveClockToPosition={moveClockToPosition}
         selectedClockIds={selectedClockIds}
         onToggleClockSelection={toggleClockSelection}
+      />
+      <SelectionBar
+        count={selectedClockIds.length}
+        onPin={() => {
+          setClocksPinned(selectedClockIds, true);
+          setSelectedClockIds([]);
+        }}
+        onUnpin={() => {
+          setClocksPinned(selectedClockIds, false);
+          setSelectedClockIds([]);
+        }}
+        onDelete={() => {
+          deleteClocks(selectedClockIds);
+          setSelectedClockIds([]);
+        }}
+        onClear={() => setSelectedClockIds([])}
       />
       <ClockFormDialog
         open={clockDialogOpen}
@@ -182,7 +216,8 @@ export function App() {
             timezone: values.timezone,
             locationName: getTimezoneLabel(values.timezone),
             secondaryName: values.secondaryName || undefined,
-            nameMode: "location" as const,
+            nameMode: values.nameMode,
+            size: values.size,
             workHours,
           };
 

@@ -166,6 +166,22 @@ select {
   will-change: transform;
 }
 
+.sortable-clock--sm {
+  width: 170px;
+  flex-basis: 170px;
+  --clock-scale: 0.68;
+}
+
+.sortable-clock--md {
+  --clock-scale: 1;
+}
+
+.sortable-clock--lg {
+  width: 320px;
+  flex-basis: 320px;
+  --clock-scale: 1.32;
+}
+
 .sortable-clock--pinned {
   cursor: default;
   touch-action: auto;
@@ -507,6 +523,14 @@ select {
   text-shadow: 0 0 22px color-mix(in srgb, var(--digital-glow) 36%, transparent);
 }
 
+.sortable-clock--sm .digital-time {
+  font-size: 1.5rem;
+}
+
+.sortable-clock--lg .digital-time {
+  font-size: 2.9rem;
+}
+
 .period-badge {
   display: inline-flex;
   height: 22px;
@@ -544,6 +568,8 @@ select {
     inset 0 0 0 1px rgba(255, 255, 255, 0.95),
     inset 0 -8px 18px rgba(83, 66, 43, 0.04),
     0 14px 26px rgba(61, 49, 34, 0.14);
+  margin: calc((var(--clock-scale, 1) - 1) * 77px);
+  transform: scale(var(--clock-scale, 1));
 }
 
 .analog-clock__availability {
@@ -1120,6 +1146,29 @@ select {
   transform: none;
 }
 
+.selection-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-surface);
+  box-shadow: var(--control-shadow);
+  transform: translateX(-50%);
+  animation: floating-menu-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selection-bar > span {
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .add-clock-button:hover {
   box-shadow:
     0 18px 38px rgba(31, 25, 18, 0.26),
@@ -1329,6 +1378,31 @@ select {
 
 .timezone-field {
   position: relative;
+}
+
+.name-mode-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.name-mode-option {
+  overflow: hidden;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--control-text);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 750;
+  padding: 7px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-mode-option--active {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .availability-editor {
@@ -1780,7 +1854,8 @@ select {
   .dialog-content,
   .select-content,
   .context-menu-content,
-  .timezone-results {
+  .timezone-results,
+  .selection-bar {
     animation-duration: 1ms !important;
   }
 }

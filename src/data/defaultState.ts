@@ -8,6 +8,8 @@ export const defaultState: AppState = {
     darkGlow: "#21917e",
     primaryTimezone: "Asia/Bangkok",
     theme: "hotel-analog",
+    awakeStart: "06:00",
+    awakeEnd: "22:00",
   },
   boards: [
     {

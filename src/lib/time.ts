@@ -97,24 +97,32 @@ function clockFaceAngle(dateTime: DateTime) {
   return minutes * 0.5;
 }
 
-function isAwakeMinute(minuteOfDay: number) {
-  return minuteOfDay >= 6 * 60 && minuteOfDay < 22 * 60;
+function isAwakeMinute(minuteOfDay: number, awake: { start: string; end: string }) {
+  const start = timeToMinutes(awake.start);
+  const end = timeToMinutes(awake.end);
+  return start <= end ? minuteOfDay >= start && minuteOfDay < end : minuteOfDay >= start || minuteOfDay < end;
 }
 
 // A 12-hour dial draws an arc across the 12 o'clock mark as one continuous
 // sector, so the only splits that mean anything are the awake/sleep edges.
-function nextAwakeBoundary(dateTime: DateTime) {
+function nextAwakeBoundary(dateTime: DateTime, awake: { start: string; end: string }) {
   const startOfDay = dateTime.startOf("day");
   const boundaries = [
-    startOfDay.plus({ hours: 6 }),
-    startOfDay.plus({ hours: 22 }),
-    startOfDay.plus({ days: 1, hours: 6 }),
-  ];
+    dateTimeWithTime(startOfDay, awake.start),
+    dateTimeWithTime(startOfDay, awake.end),
+    dateTimeWithTime(startOfDay.plus({ days: 1 }), awake.start),
+    dateTimeWithTime(startOfDay.plus({ days: 1 }), awake.end),
+  ].sort((left, right) => left.toMillis() - right.toMillis());
 
-  return boundaries.find((boundary) => boundary > dateTime) ?? startOfDay.plus({ days: 1, hours: 6 });
+  return boundaries.find((boundary) => boundary > dateTime) ?? dateTimeWithTime(startOfDay.plus({ days: 2 }), awake.start);
 }
 
-export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: DateTime, workHours: Clock["workHours"]) {
+export function getAvailabilityArcs(
+  clockDateTime: DateTime,
+  primaryDateTime: DateTime,
+  workHours: Clock["workHours"],
+  awake: { start: string; end: string },
+) {
   if (!workHours?.enabled || !isValidTimeValue(workHours.start) || !isValidTimeValue(workHours.end)) {
     return [];
   }
@@ -139,7 +147,7 @@ export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: Da
   let guard = 0;
 
   while (cursor < endOnClock && guard < 6) {
-    const boundary = nextAwakeBoundary(cursor);
+    const boundary = nextAwakeBoundary(cursor, awake);
     const segmentEnd = boundary < endOnClock ? boundary : endOnClock;
     const durationMinutes = segmentEnd.diff(cursor, "minutes").minutes;
 
@@ -150,7 +158,7 @@ export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: Da
       arcs.push({
         startAngle: clockFaceAngle(cursor),
         sizeAngle: Math.min(360, durationMinutes * 0.5),
-        variant: isAwakeMinute(midpointMinute) ? "active" : "outline",
+        variant: isAwakeMinute(midpointMinute, awake) ? "active" : "outline",
       });
     }
 

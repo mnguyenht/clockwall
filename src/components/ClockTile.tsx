@@ -21,6 +21,7 @@ type ClockTileProps = {
   theme: ThemeMode;
   displaySeconds: boolean;
   primaryTimezone: string;
+  awakeHours: { start: string; end: string };
   onEdit: (clock: Clock) => void;
   onDuplicate: (clockId: string) => void;
   onDelete: (clockId: string) => void;
@@ -38,6 +39,7 @@ export function ClockTile({
   theme,
   displaySeconds,
   primaryTimezone,
+  awakeHours,
   onEdit,
   onDuplicate,
   onDelete,
@@ -57,7 +59,7 @@ export function ClockTile({
   const isDaytime = dateTime.hour >= 6 && dateTime.hour < 18;
   const availabilityDateTime = clock.workHours?.basis === "primary" ? primaryDateTime : dateTime;
   const availability = getAvailabilityStatus(availabilityDateTime, clock.workHours);
-  const availabilityArcs = getAvailabilityArcs(dateTime, primaryDateTime, clock.workHours);
+  const availabilityArcs = getAvailabilityArcs(dateTime, primaryDateTime, clock.workHours, awakeHours);
   const availabilityDuration = getAvailabilityDurationMinutes(clock.workHours);
   const hasLongAvailability = availabilityDuration > 720;
 

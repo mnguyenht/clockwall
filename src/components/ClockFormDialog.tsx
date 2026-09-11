@@ -1,7 +1,8 @@
 import { Minus, Plus } from "lucide-react";
+import { DateTime } from "luxon";
 import { useEffect, useState, type FormEvent } from "react";
-import type { Clock } from "../types";
-import { isSupportedTimezone } from "../data/timezones";
+import type { Clock, ClockNameMode } from "../types";
+import { getOffsetCode, getTimezoneLabel, isSupportedTimezone } from "../data/timezones";
 import { TimezonePicker } from "./TimezonePicker";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
@@ -11,6 +12,8 @@ import { Switch } from "./ui/switch";
 type ClockFormValues = {
   timezone: string;
   secondaryName: string;
+  nameMode: ClockNameMode;
+  size: NonNullable<Clock["size"]>;
   workHoursEnabled: boolean;
   workHoursStart: string;
   workHoursEnd: string;
@@ -28,6 +31,8 @@ function getInitialValues(clock?: Clock | null): ClockFormValues {
   return {
     timezone: clock?.timezone ?? "",
     secondaryName: clock?.secondaryName ?? "",
+    nameMode: clock?.nameMode ?? "location",
+    size: clock?.size ?? "md",
     workHoursEnabled: clock?.workHours?.enabled ?? false,
     workHoursStart: clock?.workHours?.start ?? "09:00",
     workHoursEnd: clock?.workHours?.end ?? "17:00",
@@ -59,6 +64,14 @@ function clampTimePart(value: string, max: number) {
 
 export function ClockFormDialog({ open, clock, onOpenChange, onSave }: ClockFormDialogProps) {
   const [values, setValues] = useState<ClockFormValues>(() => getInitialValues(clock));
+  const hasTimezone = Boolean(values.timezone);
+  const locationPreview = hasTimezone ? getTimezoneLabel(values.timezone) : "Location";
+  const codePreview = hasTimezone ? getOffsetCode(DateTime.local().setZone(values.timezone)) : "Code";
+  const nameModeLabels: Record<ClockNameMode, string> = {
+    location: locationPreview,
+    "location-code": hasTimezone ? locationPreview + " " + codePreview : "Location + code",
+    code: codePreview,
+  };
 
   useEffect(() => {
     if (open) {
@@ -110,6 +123,46 @@ export function ClockFormDialog({ open, clock, onOpenChange, onSave }: ClockForm
               value={values.timezone}
               onChange={(timezone) => updateValue("timezone", timezone)}
             />
+          </div>
+
+          <div className="form-field">
+            <Label>Name style</Label>
+            <div className="name-mode-group" role="radiogroup" aria-label="Name style">
+              {(["location", "location-code", "code"] as const).map((nameMode) => (
+                <button
+                  key={nameMode}
+                  type="button"
+                  role="radio"
+                  aria-checked={values.nameMode === nameMode}
+                  className={"name-mode-option" + (values.nameMode === nameMode ? " name-mode-option--active" : "")}
+                  onClick={() => updateValue("nameMode", nameMode)}
+                >
+                  {nameModeLabels[nameMode]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-field">
+            <Label>Size</Label>
+            <div className="name-mode-group" role="radiogroup" aria-label="Clock size">
+              {([
+                ["sm", "Small"],
+                ["md", "Medium"],
+                ["lg", "Large"],
+              ] as const).map(([size, label]) => (
+                <button
+                  key={size}
+                  type="button"
+                  role="radio"
+                  aria-checked={values.size === size}
+                  className={"name-mode-option" + (values.size === size ? " name-mode-option--active" : "")}
+                  onClick={() => updateValue("size", size)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="form-field">
@@ -193,7 +246,7 @@ type TimeStepperFieldProps = {
   onChange: (value: string) => void;
 };
 
-function TimeStepperField({ label, value, onChange }: TimeStepperFieldProps) {
+export function TimeStepperField({ label, value, onChange }: TimeStepperFieldProps) {
   const [hour = "09", minute = "00"] = value.split(":");
   const [hourDraft, setHourDraft] = useState(hour);
   const [minuteDraft, setMinuteDraft] = useState(minute);
