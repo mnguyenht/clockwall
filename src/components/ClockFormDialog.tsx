@@ -100,7 +100,6 @@ export function ClockFormDialog({ open, clock, defaultNameMode, onOpenChange, on
               value={values.nameMode}
               onChange={(nameMode) => updateValue("nameMode", nameMode)}
               previewTimezone={values.timezone || undefined}
-              layoutIdSuffix="clock-form"
             />
           </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
+import { AnimatePresence, LazyMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
@@ -38,6 +38,7 @@ function getDigitalContrast(glow: string) {
 }
 
 const TOAST_DURATION_MS = 6200;
+const loadMotionFeatures = () => import("./lib/motionFeatures").then((mod) => mod.default);
 
 export function App() {
   const now = useNow();
@@ -138,7 +139,7 @@ export function App() {
   }, [toast]);
 
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={loadMotionFeatures} strict>
       <div className={`app-shell app-shell--${theme}`} style={appStyle}>
       <AppControls
         boards={state.boards}

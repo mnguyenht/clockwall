@@ -7,11 +7,13 @@ type NameModeGroupProps = {
   value: ClockNameMode;
   onChange: (value: ClockNameMode) => void;
   previewTimezone?: string;
-  layoutIdSuffix: string;
 };
 
-export function NameModeGroup({ value, onChange, previewTimezone, layoutIdSuffix }: NameModeGroupProps) {
+const nameModes = ["location", "location-code", "code"] as const;
+
+export function NameModeGroup({ value, onChange, previewTimezone }: NameModeGroupProps) {
   const shouldReduceMotion = useReducedMotion();
+  const activeIndex = nameModes.indexOf(value);
   const hasTimezone = Boolean(previewTimezone);
   const locationPreview = previewTimezone ? getTimezoneLabel(previewTimezone) : "Location";
   const codePreview = previewTimezone ? getOffsetCode(DateTime.local().setZone(previewTimezone)) : "Code";
@@ -26,7 +28,15 @@ export function NameModeGroup({ value, onChange, previewTimezone, layoutIdSuffix
 
   return (
     <div className="name-mode-group" role="radiogroup" aria-label="Name style">
-      {(["location", "location-code", "code"] as const).map((nameMode) => {
+      <m.span
+        className="name-mode-group__pill"
+        animate={{ x: `calc(${activeIndex * 100}% + ${activeIndex * 6}px)` }}
+        transition={
+          shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }
+        }
+        aria-hidden="true"
+      />
+      {nameModes.map((nameMode) => {
         const selected = value === nameMode;
 
         return (
@@ -41,13 +51,6 @@ export function NameModeGroup({ value, onChange, previewTimezone, layoutIdSuffix
             whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
             transition={transition}
           >
-            {selected ? (
-              <m.span
-                className="name-mode-option__pill"
-                layoutId={`name-mode-pill-${layoutIdSuffix}`}
-                transition={transition}
-              />
-            ) : null}
             <span>{labels[nameMode]}</span>
           </m.button>
         );

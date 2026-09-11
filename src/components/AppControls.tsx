@@ -329,7 +329,6 @@ export function AppControls({
                   value={defaultNameMode}
                   onChange={onDefaultNameModeChange}
                   previewTimezone={primaryTimezone}
-                  layoutIdSuffix="settings"
                 />
               </div>
 

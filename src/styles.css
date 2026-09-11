@@ -1384,9 +1384,22 @@ select {
 }
 
 .name-mode-group {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+}
+
+.name-mode-group__pill {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: calc((100% - 12px) / 3);
+  height: 100%;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  pointer-events: none;
 }
 
 .name-mode-option {
@@ -1406,14 +1419,6 @@ select {
 
 .name-mode-option--active {
   border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
-.name-mode-option__pill {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .name-mode-option > span:last-child {
