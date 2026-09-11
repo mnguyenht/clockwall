@@ -13,7 +13,7 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { GlowPaletteControl } from "./GlowPaletteControl";
-import { timezoneOptions } from "../data/timezones";
+import { TimezonePicker } from "./TimezonePicker";
 
 type AppControlsProps = {
   boards: Board[];
@@ -280,18 +280,12 @@ export function AppControls({
                   <Label>Main timezone</Label>
                   <p>Your central reference clock for availability.</p>
                 </div>
-                <Select value={primaryTimezone} onValueChange={onPrimaryTimezoneChange}>
-                  <SelectTrigger className="settings-select" aria-label="Main timezone">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezoneOptions.map((option) => (
-                      <SelectItem key={option.timezone} value={option.timezone}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <TimezonePicker
+                  id="primary-timezone"
+                  value={primaryTimezone}
+                  onChange={onPrimaryTimezoneChange}
+                  className="settings-timezone-picker"
+                />
               </div>
 
               <div className="settings-row">

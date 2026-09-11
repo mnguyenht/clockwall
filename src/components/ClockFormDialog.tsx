@@ -1,8 +1,8 @@
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { DateTime } from "luxon";
+import { useEffect, useState, type FormEvent } from "react";
 import type { Clock } from "../types";
-import { getTimezoneLabel, timezoneOptions } from "../data/timezones";
+import { isSupportedTimezone } from "../data/timezones";
+import { TimezonePicker } from "./TimezonePicker";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { Label } from "./ui/label";
@@ -57,92 +57,22 @@ function clampTimePart(value: string, max: number) {
   return String(Math.max(0, Math.min(max, Number(numericValue || 0)))).padStart(2, "0");
 }
 
-function isValidTimezone(timezone: string) {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: timezone });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeTimezoneSearch(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9+-]/g, "");
-}
-
-function getOffsetAliases(dateTime: DateTime) {
-  const offsetMinutes = dateTime.offset;
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const absoluteMinutes = Math.abs(offsetMinutes);
-  const hours = Math.floor(absoluteMinutes / 60);
-  const minutes = absoluteMinutes % 60;
-  const compactOffset = `${sign}${hours}`;
-  const paddedOffset = `${sign}${String(hours).padStart(2, "0")}`;
-  const fullOffset = `${paddedOffset}:${String(minutes).padStart(2, "0")}`;
-
-  return [
-    `gmt${compactOffset}`,
-    `gmt${paddedOffset}`,
-    `gmt${fullOffset}`,
-    `utc${compactOffset}`,
-    `utc${paddedOffset}`,
-    `utc${fullOffset}`,
-  ];
-}
-
-function getTimezoneSearchText(option: (typeof timezoneOptions)[number], now: DateTime) {
-  const optionTime = now.setZone(option.timezone);
-  const shortName = optionTime.offsetNameShort ?? "";
-  const offsetAliases = getOffsetAliases(optionTime);
-
-  return `${option.label} ${option.timezone} ${option.keywords} ${shortName} ${offsetAliases.join(" ")}`.toLowerCase();
-}
-
 export function ClockFormDialog({ open, clock, onOpenChange, onSave }: ClockFormDialogProps) {
   const [values, setValues] = useState<ClockFormValues>(() => getInitialValues(clock));
-  const [timezoneSearch, setTimezoneSearch] = useState(clock ? getTimezoneLabel(getInitialValues(clock).timezone) : "");
-  const [timezoneFocused, setTimezoneFocused] = useState(false);
-  const now = DateTime.local();
 
   useEffect(() => {
     if (open) {
       const nextValues = getInitialValues(clock);
       setValues(nextValues);
-      setTimezoneSearch(clock ? getTimezoneLabel(nextValues.timezone) : "");
-      setTimezoneFocused(false);
     }
   }, [clock, open]);
 
-  const filteredTimezones = useMemo(() => {
-    const query = timezoneSearch.trim().toLowerCase();
-    const normalizedQuery = normalizeTimezoneSearch(query);
-    if (!query) {
-      return timezoneOptions.slice(0, 12);
-    }
-
-    return timezoneOptions
-      .filter((option) => {
-        const haystack = getTimezoneSearchText(option, now);
-        return haystack.includes(query) || normalizeTimezoneSearch(haystack).includes(normalizedQuery);
-      })
-      .slice(0, 12);
-  }, [timezoneSearch]);
-
   const canSave =
-    isValidTimezone(values.timezone) &&
+    isSupportedTimezone(values.timezone) &&
     (!values.workHoursEnabled || (Boolean(values.workHoursStart) && Boolean(values.workHoursEnd)));
 
   function updateValue<Key extends keyof ClockFormValues>(key: Key, value: ClockFormValues[Key]) {
     setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function selectTimezone(timezone: string, label: string) {
-    setValues((current) => ({
-      ...current,
-      timezone,
-    }));
-    setTimezoneSearch(label);
-    setTimezoneFocused(false);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -175,43 +105,11 @@ export function ClockFormDialog({ open, clock, onOpenChange, onSave }: ClockForm
 
           <div className="form-field timezone-field">
             <Label htmlFor="timezone-search">Timezone</Label>
-            <input
+            <TimezonePicker
               id="timezone-search"
-              className="text-input"
-              value={timezoneSearch}
-              onChange={(event) => {
-                setTimezoneSearch(event.target.value);
-                updateValue("timezone", "");
-                setTimezoneFocused(true);
-              }}
-              onFocus={() => setTimezoneFocused(true)}
-              onBlur={() => window.setTimeout(() => setTimezoneFocused(false), 120)}
-              placeholder="Search city or timezone"
-              name="timezone-search"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
+              value={values.timezone}
+              onChange={(timezone) => updateValue("timezone", timezone)}
             />
-            {timezoneFocused ? (
-              <div className="timezone-results" role="listbox" aria-label="Timezone suggestions">
-                {filteredTimezones.map((option) => (
-                  <button
-                    className={`timezone-option ${values.timezone === option.timezone ? "timezone-option--active" : ""}`}
-                    key={option.timezone}
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => selectTimezone(option.timezone, option.label)}
-                  >
-                    <span>
-                      <strong>{option.label}</strong>
-                      <small>{option.timezone}</small>
-                    </span>
-                    <span>{now.setZone(option.timezone).toFormat("HH:mm")}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </div>
 
           <div className="form-field">

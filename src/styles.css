@@ -582,6 +582,18 @@ select {
   stroke-width: 2.5px;
 }
 
+.analog-clock__availability-sector--active {
+  fill: rgba(39, 115, 95, 0.34);
+  stroke: none;
+}
+
+.analog-clock__availability-sector--outline {
+  fill: none;
+  stroke: rgba(39, 115, 95, 0.34);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
 .analog-clock__mark {
   position: absolute;
   z-index: 1;
@@ -1460,9 +1472,22 @@ select {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
+.timezone-option > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.timezone-option > span:last-child {
+  flex: 0 0 auto;
+}
+
 .timezone-option strong,
 .timezone-option small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timezone-option strong {
@@ -1807,4 +1832,18 @@ select {
   .top-actions {
     gap: 8px;
   }
+}
+
+.timezone-empty {
+  margin: 0;
+  color: color-mix(in srgb, var(--control-text) 58%, transparent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 9px;
+}
+
+.settings-timezone-picker {
+  position: relative;
+  flex: 0 0 190px;
+  width: 190px;
 }

@@ -9,9 +9,42 @@ type AnalogClockProps = {
   availabilityArcs?: Array<{
     startAngle: number;
     sizeAngle: number;
-    variant: "active" | "outline" | "full";
+    variant: "active" | "outline";
   }>;
 };
+
+const AVAILABILITY_CENTER = 77;
+const AVAILABILITY_RADIUS = 62;
+const AVAILABILITY_BAND = 9;
+
+function ringSectorPath(startAngle: number, sizeAngle: number) {
+  const inner = AVAILABILITY_RADIUS - AVAILABILITY_BAND / 2;
+  const outer = AVAILABILITY_RADIUS + AVAILABILITY_BAND / 2;
+  // One SVG arc command cannot express a whole turn, so stop a hair short of it.
+  const size = Math.min(sizeAngle, 359.9);
+  const endAngle = startAngle + size;
+  const largeArc = size > 180 ? 1 : 0;
+  const point = (angle: number, radius: number) => {
+    const radians = ((angle - 90) * Math.PI) / 180;
+    return [
+      AVAILABILITY_CENTER + Math.cos(radians) * radius,
+      AVAILABILITY_CENTER + Math.sin(radians) * radius,
+    ] as const;
+  };
+
+  const [outerStartX, outerStartY] = point(startAngle, outer);
+  const [outerEndX, outerEndY] = point(endAngle, outer);
+  const [innerEndX, innerEndY] = point(endAngle, inner);
+  const [innerStartX, innerStartY] = point(startAngle, inner);
+
+  return [
+    `M ${outerStartX} ${outerStartY}`,
+    `A ${outer} ${outer} 0 ${largeArc} 1 ${outerEndX} ${outerEndY}`,
+    `L ${innerEndX} ${innerEndY}`,
+    `A ${inner} ${inner} 0 ${largeArc} 0 ${innerStartX} ${innerStartY}`,
+    "Z",
+  ].join(" ");
+}
 
 export function AnalogClock({ dateTime, displaySeconds, period, availabilityArcs = [] }: AnalogClockProps) {
   const hour = dateTime.hour % 12;
@@ -20,86 +53,17 @@ export function AnalogClock({ dateTime, displaySeconds, period, availabilityArcs
   const hourRotation = hour * 30 + minute * 0.5;
   const minuteRotation = minute * 6 + second * 0.1;
   const secondRotation = second * 6;
-  const availabilityRadius = 62;
-  const availabilityBandWidth = 9;
-  const availabilityCapAngle = (availabilityBandWidth / 2 / availabilityRadius) * (180 / Math.PI);
-
-  function pointOnAvailabilityBand(angle: number, radius: number) {
-    const radians = ((angle - 90) * Math.PI) / 180;
-    return {
-      x: 77 + Math.cos(radians) * radius,
-      y: 77 + Math.sin(radians) * radius,
-    };
-  }
-
   return (
     <div className={`analog-clock analog-clock--${period.toLowerCase()}`} aria-hidden="true">
       {availabilityArcs.length > 0 ? (
         <svg className="analog-clock__availability" viewBox="0 0 154 154">
-          {availabilityArcs.map((arc, index) => {
-            const adjustedStartAngle = arc.startAngle + availabilityCapAngle;
-            const adjustedSizeAngle = Math.max(0, arc.sizeAngle - availabilityCapAngle * 2);
-            const availabilityLength = Math.min(100, Math.max(0, adjustedSizeAngle / 3.6));
-            const outerRadius = availabilityRadius + availabilityBandWidth / 2;
-            const innerRadius = availabilityRadius - availabilityBandWidth / 2;
-            const startOuter = pointOnAvailabilityBand(arc.startAngle, outerRadius);
-            const startInner = pointOnAvailabilityBand(arc.startAngle, innerRadius);
-            const endOuter = pointOnAvailabilityBand(arc.startAngle + arc.sizeAngle, outerRadius);
-            const endInner = pointOnAvailabilityBand(arc.startAngle + arc.sizeAngle, innerRadius);
-
-            if (arc.variant === "full") {
-              return (
-                <circle
-                  className="analog-clock__availability-full"
-                  cx="77"
-                  cy="77"
-                  key={`full-${index}`}
-                  r={outerRadius}
-                />
-              );
-            }
-
-            if (arc.variant === "outline") {
-              return (
-                <g
-                  className="analog-clock__availability-outline"
-                  key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
-                >
-                  <circle
-                    cx="77"
-                    cy="77"
-                    r={outerRadius}
-                    pathLength={100}
-                    strokeDasharray={`${availabilityLength} ${100 - availabilityLength}`}
-                    transform={`rotate(${arc.startAngle - 90} 77 77)`}
-                  />
-                  <circle
-                    cx="77"
-                    cy="77"
-                    r={innerRadius}
-                    pathLength={100}
-                    strokeDasharray={`${availabilityLength} ${100 - availabilityLength}`}
-                    transform={`rotate(${arc.startAngle - 90} 77 77)`}
-                  />
-                  <line x1={startInner.x} y1={startInner.y} x2={startOuter.x} y2={startOuter.y} />
-                  <line x1={endInner.x} y1={endInner.y} x2={endOuter.x} y2={endOuter.y} />
-                </g>
-              );
-            }
-
-            return (
-              <circle
-                className={`analog-clock__availability-segment analog-clock__availability-segment--${arc.variant}`}
-                cx="77"
-                cy="77"
-                key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
-                r={availabilityRadius}
-                pathLength={100}
-                strokeDasharray={`${availabilityLength} ${100 - availabilityLength}`}
-                transform={`rotate(${adjustedStartAngle - 90} 77 77)`}
-              />
-            );
-          })}
+          {availabilityArcs.map((arc, index) => (
+            <path
+              className={`analog-clock__availability-sector analog-clock__availability-sector--${arc.variant}`}
+              d={ringSectorPath(arc.startAngle, arc.sizeAngle)}
+              key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
+            />
+          ))}
         </svg>
       ) : null}
       <span className="analog-clock__mark analog-clock__mark--12" />

@@ -101,16 +101,17 @@ function isAwakeMinute(minuteOfDay: number) {
   return minuteOfDay >= 6 * 60 && minuteOfDay < 22 * 60;
 }
 
-function nextAvailabilityBoundary(dateTime: DateTime) {
+// A 12-hour dial draws an arc across the 12 o'clock mark as one continuous
+// sector, so the only splits that mean anything are the awake/sleep edges.
+function nextAwakeBoundary(dateTime: DateTime) {
   const startOfDay = dateTime.startOf("day");
   const boundaries = [
     startOfDay.plus({ hours: 6 }),
-    startOfDay.plus({ hours: 12 }),
     startOfDay.plus({ hours: 22 }),
-    startOfDay.plus({ days: 1 }),
+    startOfDay.plus({ days: 1, hours: 6 }),
   ];
 
-  return boundaries.find((boundary) => boundary > dateTime) ?? startOfDay.plus({ days: 1 });
+  return boundaries.find((boundary) => boundary > dateTime) ?? startOfDay.plus({ days: 1, hours: 6 });
 }
 
 export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: DateTime, workHours: Clock["workHours"]) {
@@ -133,12 +134,12 @@ export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: Da
 
   const startOnClock = startSource.setZone(clockDateTime.zoneName ?? clockDateTime.zone.name);
   const endOnClock = endSource.setZone(clockDateTime.zoneName ?? clockDateTime.zone.name);
-  const arcs: Array<{ startAngle: number; sizeAngle: number; variant: "active" | "outline" | "full" }> = [];
+  const arcs: Array<{ startAngle: number; sizeAngle: number; variant: "active" | "outline" }> = [];
   let cursor = startOnClock;
   let guard = 0;
 
-  while (cursor < endOnClock && guard < 8) {
-    const boundary = nextAvailabilityBoundary(cursor);
+  while (cursor < endOnClock && guard < 6) {
+    const boundary = nextAwakeBoundary(cursor);
     const segmentEnd = boundary < endOnClock ? boundary : endOnClock;
     const durationMinutes = segmentEnd.diff(cursor, "minutes").minutes;
 
@@ -148,7 +149,7 @@ export function getAvailabilityArcs(clockDateTime: DateTime, primaryDateTime: Da
 
       arcs.push({
         startAngle: clockFaceAngle(cursor),
-        sizeAngle: Math.min(360, Math.max(4, durationMinutes * 0.5)),
+        sizeAngle: Math.min(360, durationMinutes * 0.5),
         variant: isAwakeMinute(midpointMinute) ? "active" : "outline",
       });
     }

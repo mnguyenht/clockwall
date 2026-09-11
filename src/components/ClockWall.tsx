@@ -71,25 +71,51 @@ export function ClockWall({
     ? board.clocks.filter((clock) => clockMatchesSearch(clock, now, normalizedSearchQuery))
     : board.clocks;
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
-  const sortableItems = searchActive ? visibleClocks.map((clock) => clock.id) : movableClockIds;
+  const sortableItems = movableClockIds;
+
+  function resolveDropIndex(overId: string) {
+    const direct = movableClockIds.indexOf(overId);
+    if (direct !== -1) {
+      return direct;
+    }
+
+    // Released over a pinned clock. Pinned clocks never move, so walk outward
+    // through board order and land beside the closest clock that can move,
+    // instead of cancelling the drag.
+    const overBoardIndex = board.clocks.findIndex((clock) => clock.id === overId);
+    if (overBoardIndex === -1) {
+      return -1;
+    }
+
+    for (let step = 1; step < board.clocks.length; step += 1) {
+      const neighbours = [board.clocks[overBoardIndex - step], board.clocks[overBoardIndex + step]];
+      for (const neighbour of neighbours) {
+        const index = neighbour ? movableClockIds.indexOf(neighbour.id) : -1;
+        if (index !== -1) {
+          return index;
+        }
+      }
+    }
+
+    return -1;
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (!over || active.id === over.id) {
+    if (!over) {
       return;
     }
 
     const activeClock = board.clocks.find((clock) => clock.id === String(active.id));
-    const overClock = board.clocks.find((clock) => clock.id === String(over.id));
-    if (!activeClock || !overClock || activeClock.pinned || overClock.pinned) {
+    if (!activeClock || activeClock.pinned) {
       return;
     }
 
     const oldIndex = movableClockIds.indexOf(activeClock.id);
-    const newIndex = movableClockIds.indexOf(overClock.id);
+    const newIndex = resolveDropIndex(String(over.id));
 
-    if (oldIndex === -1 || newIndex === -1) {
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
       return;
     }
 
