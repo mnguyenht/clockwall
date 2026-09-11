@@ -253,7 +253,7 @@ export function AppControls({
           className="theme-toggle"
           variant="default"
           onClick={() => onThemeChange(theme === "hotel-analog" ? "dark-digital" : "hotel-analog")}
-          aria-label="Toggle theme"
+          aria-label={`Switch theme (currently ${isAnalog ? "Hotel Analog" : "Dark Digital"})`}
           title={isAnalog ? "Current theme: Hotel Analog" : "Current theme: Dark Digital"}
         >
           {isAnalog ? <SunMedium size={17} /> : <Moon size={17} />}

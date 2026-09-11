@@ -20,6 +20,7 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
   const [open, setOpen] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? boards[0];
+  const compactActiveName = getCompactBoardName(activeBoard?.name ?? "Board");
   const canDelete = boards.length > 1;
 
   function handleOpenChange(nextOpen: boolean) {
@@ -55,8 +56,11 @@ export function BoardMenu({ boards, activeBoardId, onSelect, onCreate, onDelete 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" className="select-trigger" aria-label="Board">
-          <span className="select-trigger__value">{getCompactBoardName(activeBoard?.name ?? "Board")}</span>
+        {/* The accessible name has to contain the visible text, or speech input cannot
+            target the control by what it reads. Built from the same compacted string so
+            it still matches once a long board name is truncated. */}
+        <button type="button" className="select-trigger" aria-label={`Board: ${compactActiveName}`}>
+          <span className="select-trigger__value">{compactActiveName}</span>
           <ChevronDown size={16} />
         </button>
       </PopoverTrigger>
