@@ -16,24 +16,71 @@ const TIMEZONE_ABBREVIATION_OFFSETS: Readonly<Record<string, number>> = {
   EET: 120,
   EEST: 180,
   MSK: 180,
+  TRT: 180,
   WAT: 60,
+  CAT: 120,
   SAST: 120,
   EAT: 180,
+  MUT: 240,
+  SCT: 240,
+  RET: 240,
   GST: 240,
   PKT: 300,
+  IRST: 210,
+  IRDT: 270,
+  AFT: 270,
   NPT: 345,
+  BTT: 360,
+  MMT: 390,
   ICT: 420,
   WIB: 420,
+  MYT: 480,
   HKT: 480,
   SGT: 480,
+  BNT: 480,
+  PHT: 480,
   AWST: 480,
   JST: 540,
   KST: 540,
+  TLT: 540,
+  IDT: 180,
+  AZT: 240,
+  AMT: 240,
+  GET: 240,
+  UZT: 300,
+  TMT: 300,
+  TJT: 300,
+  KGT: 360,
+  MVT: 300,
   ACST: 570,
+  ACDT: 630,
   AEST: 600,
   AEDT: 660,
+  LHST: 630,
+  LHDT: 660,
   NZST: 720,
   NZDT: 780,
+  CHAST: 765,
+  CHADT: 825,
+  FJT: 720,
+  PGT: 600,
+  SBT: 660,
+  VUT: 660,
+  NCT: 660,
+  SST: 780,
+  TOT: 780,
+  CKT: -600,
+  TAHT: -600,
+  MART: -570,
+  GAMT: -540,
+  PWT: 540,
+  NRT: 720,
+  NUT: -660,
+  TVT: 720,
+  TKT: 780,
+  CHUT: 600,
+  KOST: 660,
+  PONT: 660,
   EST: -300,
   EDT: -240,
   CST: -360,
@@ -48,15 +95,146 @@ const TIMEZONE_ABBREVIATION_OFFSETS: Readonly<Record<string, number>> = {
   AST: -240,
   ADT: -180,
   NST: -210,
+  NDT: -150,
   BRT: -180,
+  BRST: -120,
   ART: -180,
   CLT: -240,
+  CLST: -180,
   COT: -300,
   PET: -300,
+  ECT: -300,
+  BOT: -240,
   VET: -240,
+  GYT: -240,
+  SRT: -180,
+  PYT: -240,
+  PYST: -180,
+  UYT: -180,
+  GALT: -360,
+};
+
+// CLDR long names are used as keys because they are DST-aware. A missing entry
+// deliberately falls back to the GMT/UTC offset instead of guessing a code.
+// Real-world collisions (including IST, CST, AMT, and BST) are intentional.
+const TIMEZONE_LONG_NAME_CODES: Readonly<Record<string, string>> = {
+  "Coordinated Universal Time": "UTC",
+
+  // Europe — the winter names say "Standard" but the conventional code drops it
+  "Central European Standard Time": "CET",
+  "Central European Summer Time": "CEST",
+  "Eastern European Standard Time": "EET",
+  "Eastern European Summer Time": "EEST",
+  "Western European Standard Time": "WET",
+  "Western European Summer Time": "WEST",
+  "British Summer Time": "BST",
+  "Irish Standard Time": "IST",
+  "Moscow Standard Time": "MSK",
+  "Turkey Time": "TRT",
+
+  // Asia
+  "India Standard Time": "IST",
+  "Pakistan Standard Time": "PKT",
+  "Iran Standard Time": "IRST",
+  "Iran Daylight Time": "IRDT",
+  "Afghanistan Time": "AFT",
+  "Nepal Time": "NPT",
+  "Bhutan Time": "BTT",
+  "Bangladesh Standard Time": "BST",
+  "Myanmar Time": "MMT",
+  "Indochina Time": "ICT",
+  "Malaysia Time": "MYT",
+  "Singapore Standard Time": "SGT",
+  "Brunei Darussalam Time": "BNT",
+  "Hong Kong Standard Time": "HKT",
+  "China Standard Time": "CST",
+  "Taipei Standard Time": "CST",
+  "Japan Standard Time": "JST",
+  "Korean Standard Time": "KST",
+  "Philippine Standard Time": "PHT",
+  "Timor-Leste Time": "TLT",
+  "Gulf Standard Time": "GST",
+  "Arabian Standard Time": "AST",
+  "Israel Standard Time": "IST",
+  "Israel Daylight Time": "IDT",
+  "Azerbaijan Standard Time": "AZT",
+  "Armenia Standard Time": "AMT",
+  "Georgia Standard Time": "GET",
+  "Uzbekistan Standard Time": "UZT",
+  "Turkmenistan Standard Time": "TMT",
+  "Tajikistan Time": "TJT",
+  "Kyrgyzstan Time": "KGT",
+  "Maldives Time": "MVT",
+
+  // Africa
+  "West Africa Standard Time": "WAT",
+  "Central Africa Time": "CAT",
+  "East Africa Time": "EAT",
+  "South Africa Standard Time": "SAST",
+  "Mauritius Standard Time": "MUT",
+  "Seychelles Time": "SCT",
+  "Réunion Time": "RET",
+
+  // Oceania
+  "Australian Eastern Standard Time": "AEST",
+  "Australian Eastern Daylight Time": "AEDT",
+  "Australian Central Standard Time": "ACST",
+  "Australian Central Daylight Time": "ACDT",
+  "Australian Western Standard Time": "AWST",
+  "Lord Howe Standard Time": "LHST",
+  "Lord Howe Daylight Time": "LHDT",
+  "New Zealand Standard Time": "NZST",
+  "New Zealand Daylight Time": "NZDT",
+  "Chatham Standard Time": "CHAST",
+  "Chatham Daylight Time": "CHADT",
+  "Fiji Standard Time": "FJT",
+  "Papua New Guinea Time": "PGT",
+  "Solomon Islands Time": "SBT",
+  "Vanuatu Standard Time": "VUT",
+  "New Caledonia Standard Time": "NCT",
+  "Samoa Standard Time": "SST",
+  "Tonga Standard Time": "TOT",
+  "Cook Islands Standard Time": "CKT",
+  "Tahiti Time": "TAHT",
+  "Marquesas Time": "MART",
+  "Gambier Time": "GAMT",
+  "Palau Time": "PWT",
+  "Nauru Time": "NRT",
+  "Niue Time": "NUT",
+  "Tuvalu Time": "TVT",
+  "Tokelau Time": "TKT",
+  "Chuuk Time": "CHUT",
+  "Kosrae Time": "KOST",
+  "Pohnpei Time": "PONT",
+
+  // Americas outside the CLDR short set
+  "Brasilia Standard Time": "BRT",
+  "Brasilia Summer Time": "BRST",
+  "Argentina Standard Time": "ART",
+  "Chile Standard Time": "CLT",
+  "Chile Summer Time": "CLST",
+  "Colombia Standard Time": "COT",
+  "Peru Standard Time": "PET",
+  "Ecuador Time": "ECT",
+  "Bolivia Time": "BOT",
+  "Venezuela Time": "VET",
+  "Guyana Time": "GYT",
+  "Suriname Time": "SRT",
+  "Paraguay Standard Time": "PYT",
+  "Paraguay Summer Time": "PYST",
+  "Uruguay Standard Time": "UYT",
+  "Amazon Standard Time": "AMT",
+  "Galapagos Time": "GALT",
+  "Atlantic Standard Time": "AST",
+  "Atlantic Daylight Time": "ADT",
+  "Newfoundland Standard Time": "NST",
+  "Newfoundland Daylight Time": "NDT",
+  "Cuba Standard Time": "CST",
+  "Cuba Daylight Time": "CDT",
 };
 
 const zoneOffsetsByYear = new Map<string, Set<number>>();
+const zoneCodesByYear = new Map<string, Set<string>>();
 
 export function resolveTimezoneQuery(query: string): { offset: number; label: string } | null {
   const normalized = query.trim().toUpperCase();
@@ -110,12 +288,39 @@ export function getZoneOffsets(timezone: string, now: Date): Set<number> {
   return offsets;
 }
 
+export function getZoneCodes(timezone: string, now: Date): Set<string> {
+  const year = DateTime.fromJSDate(now).year;
+  const cacheKey = `${timezone}:${year}`;
+  const cached = zoneCodesByYear.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const samples = [
+    DateTime.fromObject({ year, month: 1, day: 15 }, { zone: timezone }),
+    DateTime.fromObject({ year, month: 7, day: 15 }, { zone: timezone }),
+    DateTime.fromJSDate(now).setZone(timezone),
+  ];
+  const codes = samples.every((sample) => sample.isValid)
+    ? new Set(samples.map((sample) => getTimezoneCode(sample)))
+    : new Set<string>();
+
+  zoneCodesByYear.set(cacheKey, codes);
+  return codes;
+}
+
 export function getClockDateTime(now: Date, timezone: string) {
   return DateTime.fromJSDate(now).setZone(timezone);
 }
 
 export function getTimezoneCode(dateTime: DateTime) {
-  return dateTime.offsetNameShort ?? dateTime.toFormat("ZZZZ");
+  const offsetNameShort = dateTime.offsetNameShort ?? dateTime.toFormat("ZZZZ");
+  if (!/^(GMT|UTC)[+-]/.test(offsetNameShort)) {
+    return offsetNameShort;
+  }
+
+  const offsetNameLong = dateTime.offsetNameLong ?? dateTime.toFormat("ZZZZ");
+  return TIMEZONE_LONG_NAME_CODES[offsetNameLong] ?? offsetNameShort;
 }
 
 export function getClockPrimaryName(clock: Clock, dateTime: DateTime, timezoneCodeOverride?: string) {

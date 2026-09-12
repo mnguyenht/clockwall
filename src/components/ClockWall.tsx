@@ -25,6 +25,7 @@ import {
   getClockDateTime,
   getClockPrimaryName,
   getTimezoneCode,
+  getZoneCodes,
   getZoneOffsets,
   resolveTimezoneQuery,
 } from "../lib/time";
@@ -396,7 +397,10 @@ export function ClockWall({
                 now={now}
                 theme={theme}
                 timezoneCodeOverride={
-                  resolvedTimezoneQuery && matchesResolvedTimezone
+                  resolvedTimezoneQuery &&
+                  matchesResolvedTimezone &&
+                  (getZoneCodes(clock.timezone, now).has(resolvedTimezoneQuery.label) ||
+                    /^UTC[+-]/.test(resolvedTimezoneQuery.label))
                     ? resolvedTimezoneQuery.label
                     : undefined
                 }
