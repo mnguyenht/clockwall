@@ -40,6 +40,40 @@ function getDigitalContrast(glow: string) {
 
 const TOAST_DURATION_MS = 6200;
 
+function sortedClockIds(clocks: Clock[], key: ClockSortKey, direction: ClockSortDirection, now: Date) {
+  const sortedUnpinnedClocks = clocks.filter((clock) => !clock.pinned);
+  sortedUnpinnedClocks.sort((left, right) => {
+    if (key === "secondaryName") {
+      if (!left.secondaryName && !right.secondaryName) {
+        return 0;
+      }
+      if (!left.secondaryName) {
+        return 1;
+      }
+      if (!right.secondaryName) {
+        return -1;
+      }
+
+      const comparison = left.secondaryName.localeCompare(right.secondaryName, undefined, { sensitivity: "base" });
+      return direction === "ascending" ? comparison : -comparison;
+    }
+
+    if (key === "locationName") {
+      const comparison = left.locationName.localeCompare(right.locationName, undefined, { sensitivity: "base" });
+      return direction === "ascending" ? comparison : -comparison;
+    }
+
+    const leftDateTime = getClockDateTime(now, left.timezone);
+    const rightDateTime = getClockDateTime(now, right.timezone);
+    const comparison = leftDateTime.hour * 60 + leftDateTime.minute - (rightDateTime.hour * 60 + rightDateTime.minute);
+    return direction === "ascending" ? comparison : -comparison;
+  });
+
+  return clocks.map((clock) =>
+    clock.pinned ? clock.id : (sortedUnpinnedClocks.shift()?.id ?? clock.id),
+  );
+}
+
 export function App() {
   const now = useNow();
   const shouldReduceMotion = useReducedMotion();
@@ -50,6 +84,10 @@ export function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState<{ title: string; message: ReactNode } | null>(null);
   const [preSortClockIds, setPreSortClockIds] = useState<string[] | null>(null);
+  const [activeSort, setActiveSort] = useState<{
+    key: ClockSortKey;
+    direction: ClockSortDirection;
+  } | null>(null);
   const {
     state,
     activeBoard,
@@ -74,6 +112,7 @@ export function App() {
     exportActiveBoardDeck,
     importBoardDeck,
   } = useAppState();
+  const pinnedSignature = activeBoard.clocks.map((clock) => `${clock.id}:${clock.pinned ? 1 : 0}`).join(",");
   const theme = state.settings.theme;
   const digitalContrast = getDigitalContrast(state.settings.darkGlow);
   const appStyle = {
@@ -103,41 +142,13 @@ export function App() {
       setPreSortClockIds(activeBoard.clocks.map((clock) => clock.id));
     }
 
-    const sortedUnpinnedClocks = activeBoard.clocks.filter((clock) => !clock.pinned);
-    sortedUnpinnedClocks.sort((left, right) => {
-      if (key === "secondaryName") {
-        if (!left.secondaryName && !right.secondaryName) {
-          return 0;
-        }
-        if (!left.secondaryName) {
-          return 1;
-        }
-        if (!right.secondaryName) {
-          return -1;
-        }
-
-        const comparison = left.secondaryName.localeCompare(right.secondaryName, undefined, { sensitivity: "base" });
-        return direction === "ascending" ? comparison : -comparison;
-      }
-
-      if (key === "locationName") {
-        const comparison = left.locationName.localeCompare(right.locationName, undefined, { sensitivity: "base" });
-        return direction === "ascending" ? comparison : -comparison;
-      }
-
-      const leftDateTime = getClockDateTime(now, left.timezone);
-      const rightDateTime = getClockDateTime(now, right.timezone);
-      const comparison = leftDateTime.hour * 60 + leftDateTime.minute - (rightDateTime.hour * 60 + rightDateTime.minute);
-      return direction === "ascending" ? comparison : -comparison;
-    });
-
-    const nextClockIds = activeBoard.clocks.map((clock) =>
-      clock.pinned ? clock.id : (sortedUnpinnedClocks.shift()?.id ?? clock.id),
-    );
+    setActiveSort({ key, direction });
+    const nextClockIds = sortedClockIds(activeBoard.clocks, key, direction, now);
     reorderClocks(nextClockIds);
   }
 
   function revertSort() {
+    setActiveSort(null);
     if (preSortClockIds === null) {
       return;
     }
@@ -148,6 +159,7 @@ export function App() {
 
   function manuallyReorderClocks(clockIds: string[]) {
     setPreSortClockIds(null);
+    setActiveSort(null);
     reorderClocks(clockIds);
   }
 
@@ -184,7 +196,20 @@ export function App() {
   useEffect(() => {
     setSelectedClockIds([]);
     setPreSortClockIds(null);
+    setActiveSort(null);
   }, [activeBoard.id]);
+
+  useEffect(() => {
+    if (!activeSort) {
+      return;
+    }
+
+    const desired = sortedClockIds(activeBoard.clocks, activeSort.key, activeSort.direction, now);
+    const current = activeBoard.clocks.map((clock) => clock.id);
+    if (desired.join(",") !== current.join(",")) {
+      reorderClocks(desired);
+    }
+  }, [pinnedSignature, activeSort]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
