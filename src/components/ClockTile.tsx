@@ -19,6 +19,7 @@ type ClockTileProps = {
   clock: Clock;
   now: Date;
   theme: ThemeMode;
+  timezoneCodeOverride?: string;
   displaySeconds: boolean;
   primaryTimezone: string;
   awakeHours: { start: string; end: string };
@@ -37,6 +38,7 @@ export function ClockTile({
   clock,
   now,
   theme,
+  timezoneCodeOverride,
   displaySeconds,
   primaryTimezone,
   awakeHours,
@@ -51,8 +53,8 @@ export function ClockTile({
   onToggleSelected,
 }: ClockTileProps) {
   const dateTime = getClockDateTime(now, clock.timezone);
-  const primaryName = getClockPrimaryName(clock, dateTime);
-  const timezoneCode = getTimezoneCode(dateTime);
+  const primaryName = getClockPrimaryName(clock, dateTime, timezoneCodeOverride);
+  const timezoneCode = timezoneCodeOverride ?? getTimezoneCode(dateTime);
   const primaryDateTime = getClockDateTime(now, primaryTimezone);
   const dayStatus = getDayStatus(dateTime);
   const dayPeriod: "AM" | "PM" = dateTime.hour < 12 ? "AM" : "PM";

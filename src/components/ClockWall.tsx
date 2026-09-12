@@ -25,7 +25,7 @@ import {
   getClockPrimaryName,
   getTimezoneCode,
   getZoneOffsets,
-  parseTimezoneQuery,
+  resolveTimezoneQuery,
 } from "../lib/time";
 
 type ClockWallProps = {
@@ -174,8 +174,9 @@ export function ClockWall({
   );
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const searchActive = normalizedSearchQuery.length > 0;
+  const resolvedTimezoneQuery = resolveTimezoneQuery(normalizedSearchQuery);
   const visibleClocks = normalizedSearchQuery
-    ? board.clocks.filter((clock) => clockMatchesSearch(clock, now, normalizedSearchQuery))
+    ? board.clocks.filter((clock) => clockMatchesSearch(clock, now, normalizedSearchQuery, resolvedTimezoneQuery))
     : board.clocks;
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
   const sortableItems = movableClockIds;
@@ -383,6 +384,11 @@ export function ClockWall({
                 clock={clock}
                 now={now}
                 theme={theme}
+                timezoneCodeOverride={
+                  resolvedTimezoneQuery && getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset)
+                    ? resolvedTimezoneQuery.label
+                    : undefined
+                }
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
                 awakeHours={awakeHours}
@@ -405,13 +411,19 @@ export function ClockWall({
   );
 }
 
-function clockMatchesSearch(clock: Clock, now: Date, query: string) {
+function clockMatchesSearch(
+  clock: Clock,
+  now: Date,
+  query: string,
+  resolvedTimezoneQuery: { offset: number; label: string } | null,
+) {
   const dateTime = getClockDateTime(now, clock.timezone);
   const haystack = [
     clock.locationName,
     clock.secondaryName,
     clock.timezone,
     getTimezoneCode(dateTime),
+    dateTime.offsetNameLong,
     getClockPrimaryName(clock, dateTime),
   ]
     .filter(Boolean)
@@ -422,8 +434,7 @@ function clockMatchesSearch(clock: Clock, now: Date, query: string) {
     return true;
   }
 
-  const offset = parseTimezoneQuery(query);
-  return offset !== null && getZoneOffsets(clock.timezone, now).has(offset);
+  return resolvedTimezoneQuery !== null && getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset);
 }
 
 type SortableClockTileProps = {

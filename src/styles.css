@@ -29,6 +29,8 @@
 
 :root[data-theme="dark-digital"] {
   color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   --digital-glow: #39d2b1;
   --digital-accent: #9dffee;
   --digital-accent-muted: #57d0b5;
@@ -1390,6 +1392,13 @@ select {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
 }
 
+:root[data-theme="dark-digital"] .board-menu__item,
+:root[data-theme="dark-digital"] .board-menu__action,
+:root[data-theme="dark-digital"] .sort-menu__item,
+:root[data-theme="dark-digital"] .sort-menu__action {
+  font-weight: 600;
+}
+
 .select-viewport {
   width: 100%;
   min-width: 0;
@@ -1602,13 +1611,22 @@ select {
 }
 
 :root[data-theme="dark-digital"] .dialog-content {
-  background: color-mix(in srgb, #0b1215 58%, transparent);
-  backdrop-filter: blur(22px) saturate(190%);
-  -webkit-backdrop-filter: blur(22px) saturate(190%);
-  border-color: color-mix(in srgb, var(--digital-glow) 26%, rgba(255, 255, 255, 0.14));
+  background:
+    linear-gradient(
+      157deg,
+      color-mix(in srgb, var(--digital-glow) 13%, transparent) 0%,
+      color-mix(in srgb, var(--digital-glow) 4%, transparent) 34%,
+      transparent 62%
+    ),
+    color-mix(in srgb, #071013 56%, transparent);
+  backdrop-filter: blur(24px) saturate(210%);
+  -webkit-backdrop-filter: blur(24px) saturate(210%);
+  border-color: color-mix(in srgb, var(--digital-glow) 32%, rgba(255, 255, 255, 0.16));
   box-shadow:
-    0 28px 80px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 color-mix(in srgb, var(--digital-glow) 16%, rgba(255, 255, 255, 0.10));
+    0 28px 80px rgba(0, 0, 0, 0.58),
+    0 0 40px color-mix(in srgb, var(--digital-glow) 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--digital-glow) 34%, rgba(255, 255, 255, 0.18)),
+    inset 0 -1px 0 color-mix(in srgb, var(--digital-glow) 10%, transparent);
 }
 
 .dialog-close {

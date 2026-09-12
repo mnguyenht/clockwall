@@ -58,11 +58,11 @@ const TIMEZONE_ABBREVIATION_OFFSETS: Readonly<Record<string, number>> = {
 
 const zoneOffsetsByYear = new Map<string, Set<number>>();
 
-export function parseTimezoneQuery(query: string): number | null {
+export function resolveTimezoneQuery(query: string): { offset: number; label: string } | null {
   const normalized = query.trim().toUpperCase();
   const abbreviationOffset = TIMEZONE_ABBREVIATION_OFFSETS[normalized];
   if (abbreviationOffset !== undefined) {
-    return abbreviationOffset;
+    return { offset: abbreviationOffset, label: normalized };
   }
 
   const match = normalized.match(/^(?:UTC|GMT)?([+-])(\d{1,2})(?::?(\d{2}))?$/);
@@ -77,7 +77,16 @@ export function parseTimezoneQuery(query: string): number | null {
   }
 
   const offset = hours * 60 + minutes;
-  return match[1] === "-" ? -offset : offset;
+  const signedOffset = match[1] === "-" ? -offset : offset;
+  const minuteLabel = minutes > 0 ? `:${String(minutes).padStart(2, "0")}` : "";
+  return {
+    offset: signedOffset,
+    label: `UTC${match[1]}${hours}${minuteLabel}`,
+  };
+}
+
+export function parseTimezoneQuery(query: string): number | null {
+  return resolveTimezoneQuery(query)?.offset ?? null;
 }
 
 export function getZoneOffsets(timezone: string, now: Date): Set<number> {
@@ -109,8 +118,8 @@ export function getTimezoneCode(dateTime: DateTime) {
   return dateTime.offsetNameShort ?? dateTime.toFormat("ZZZZ");
 }
 
-export function getClockPrimaryName(clock: Clock, dateTime: DateTime) {
-  const code = getTimezoneCode(dateTime);
+export function getClockPrimaryName(clock: Clock, dateTime: DateTime, timezoneCodeOverride?: string) {
+  const code = timezoneCodeOverride ?? getTimezoneCode(dateTime);
   const modes: Record<ClockNameMode, string> = {
     location: clock.locationName,
     "location-code": `${clock.locationName} ${code}`,
