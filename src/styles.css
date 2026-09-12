@@ -688,20 +688,20 @@ select {
   stroke-width: 2.5px;
 }
 
-.analog-clock__availability-sector--active {
-  fill: var(--availability-ink);
+.analog-clock__availability-sector {
+  fill: none;
   stroke: var(--availability-ink);
-  stroke-width: 10px;
+  stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.34;
+  opacity: var(--availability-opacity, 0.34);
+}
+
+.analog-clock__availability-sector--active {
+  stroke-width: var(--availability-band, 9px);
 }
 
 .analog-clock__availability-sector--outline {
-  fill: none;
-  stroke: var(--availability-ink);
-  stroke-width: 2px;
-  stroke-linejoin: round;
-  opacity: 0.34;
+  stroke-width: var(--availability-band-outline, 2.5px);
 }
 
 .analog-clock__mark {
@@ -2206,10 +2206,34 @@ select {
 }
 
 .background-tuner legend,
+.background-tuner__variants > span,
 .background-tuner__control > span,
 .background-tuner__output > div {
   font-size: 0.78rem;
   font-weight: 750;
+}
+
+.background-tuner__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.background-tuner__checkbox input {
+  margin: 0;
+  accent-color: var(--digital-glow);
+}
+
+.background-tuner__group {
+  display: grid;
+  gap: 14px;
+}
+
+.background-tuner__group legend {
+  margin-bottom: 10px;
+  color: color-mix(in srgb, var(--digital-glow) 76%, white);
 }
 
 .background-tuner__variants > div {

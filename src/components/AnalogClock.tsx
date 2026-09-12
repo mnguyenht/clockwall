@@ -17,36 +17,20 @@ type AnalogClockProps = {
 
 const AVAILABILITY_CENTER = 77;
 const AVAILABILITY_RADIUS = 62;
-// The band's rounded corners come from a thick round-joined stroke, whose radius is
-// half the stroke width. A thin path plus a thick stroke therefore rounds far more
-// than a thick path plus a thin one, at the same total width.
-function ringSectorPath(startAngle: number, sizeAngle: number, band: number) {
-  const inner = AVAILABILITY_RADIUS - band / 2;
-  const outer = AVAILABILITY_RADIUS + band / 2;
-  // One SVG arc command cannot express a whole turn, so stop a hair short of it.
-  const size = Math.min(sizeAngle, 359.9);
-  const endAngle = startAngle + size;
-  const largeArc = size > 180 ? 1 : 0;
-  const point = (angle: number, radius: number) => {
-    const radians = ((angle - 90) * Math.PI) / 180;
-    return [
-      AVAILABILITY_CENTER + Math.cos(radians) * radius,
-      AVAILABILITY_CENTER + Math.sin(radians) * radius,
-    ] as const;
-  };
 
-  const [outerStartX, outerStartY] = point(startAngle, outer);
-  const [outerEndX, outerEndY] = point(endAngle, outer);
-  const [innerEndX, innerEndY] = point(endAngle, inner);
-  const [innerStartX, innerStartY] = point(startAngle, inner);
-
+function point(angle: number) {
+  const radians = ((angle - 90) * Math.PI) / 180;
   return [
-    `M ${outerStartX} ${outerStartY}`,
-    `A ${outer} ${outer} 0 ${largeArc} 1 ${outerEndX} ${outerEndY}`,
-    `L ${innerEndX} ${innerEndY}`,
-    `A ${inner} ${inner} 0 ${largeArc} 0 ${innerStartX} ${innerStartY}`,
-    "Z",
-  ].join(" ");
+    AVAILABILITY_CENTER + Math.cos(radians) * AVAILABILITY_RADIUS,
+    AVAILABILITY_CENTER + Math.sin(radians) * AVAILABILITY_RADIUS,
+  ] as const;
+}
+
+function availabilityArcPath(startAngle: number, sizeAngle: number) {
+  const [startX, startY] = point(startAngle);
+  const [endX, endY] = point(startAngle + sizeAngle);
+  const largeArc = sizeAngle > 180 ? 1 : 0;
+  return `M ${startX} ${startY} A ${AVAILABILITY_RADIUS} ${AVAILABILITY_RADIUS} 0 ${largeArc} 1 ${endX} ${endY}`;
 }
 
 function useContinuousAngle(target: number) {
@@ -75,9 +59,8 @@ export function AnalogClock({
       {availabilityArcs.length > 0 ? (
         <svg className="analog-clock__availability" viewBox="0 0 154 154">
           {availabilityArcs.map((arc, index) => {
-            const band = arc.variant === "active" ? 4 : 12;
-            const strokeWidth = arc.variant === "active" ? 10 : 2;
-            const capAngle = (strokeWidth / 2 / AVAILABILITY_RADIUS) * (180 / Math.PI);
+            const band = arc.variant === "active" ? 9 : 2.5;
+            const capAngle = (band / 2 / AVAILABILITY_RADIUS) * (180 / Math.PI);
             const firstArc = index === 0;
             const lastArc = index === availabilityArcs.length - 1;
             const startAngle = arc.startAngle + (firstArc ? capAngle : 0);
@@ -85,12 +68,26 @@ export function AnalogClock({
               0,
               arc.sizeAngle - (firstArc ? capAngle : 0) - (lastArc ? capAngle : 0),
             );
+            const className = `analog-clock__availability-sector analog-clock__availability-sector--${arc.variant}`;
+            const key = `${arc.startAngle}-${arc.sizeAngle}-${index}`;
+
+            if (arc.sizeAngle >= 359.9) {
+              return (
+                <circle
+                  className={`${className} analog-clock__availability-full`}
+                  cx={AVAILABILITY_CENTER}
+                  cy={AVAILABILITY_CENTER}
+                  r={AVAILABILITY_RADIUS}
+                  key={key}
+                />
+              );
+            }
 
             return (
               <path
-                className={`analog-clock__availability-sector analog-clock__availability-sector--${arc.variant}`}
-                d={ringSectorPath(startAngle, sizeAngle, band)}
-                key={`${arc.startAngle}-${arc.sizeAngle}-${index}`}
+                className={className}
+                d={availabilityArcPath(startAngle, sizeAngle)}
+                key={key}
               />
             );
           })}

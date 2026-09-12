@@ -6,7 +6,7 @@ import "@fontsource/manrope/600.css";
 import "@fontsource/manrope/700.css";
 import "@fontsource/manrope/800.css";
 import { App } from "./App";
-import { BackgroundTuner } from "./tune/BackgroundTuner";
+import { TunePanel } from "./tune/BackgroundTuner";
 import "./styles.css";
 
 declare const process: { env: { NODE_ENV?: string } };
@@ -17,6 +17,6 @@ const backgroundTunerEnabled =
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />
-    {backgroundTunerEnabled ? <BackgroundTuner /> : null}
+    {backgroundTunerEnabled ? <TunePanel /> : null}
   </React.StrictMode>,
 );
