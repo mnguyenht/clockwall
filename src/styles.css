@@ -1280,7 +1280,7 @@ select {
 
 .sort-menu {
   z-index: 50;
-  width: 168px;
+  width: 150px;
   border: 1px solid var(--control-border);
   border-radius: 12px;
   background: var(--control-surface);
@@ -1301,6 +1301,41 @@ select {
 .sort-menu__list {
   display: grid;
   gap: 2px;
+}
+
+.sort-menu__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--control-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 620;
+  outline: none;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.sort-menu__item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sort-menu__item > svg {
+  justify-self: center;
+}
+
+.sort-menu__item:hover {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
 .sort-menu__action {
@@ -1326,40 +1361,12 @@ select {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
-.sort-menu__row {
-  display: flex;
-  height: 40px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-radius: 6px;
-  color: var(--control-text);
-  font-size: 0.9rem;
-  font-weight: 620;
-  padding: 0 6px 0 10px;
-}
-
-.sort-menu__directions {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
-}
-
-.sort-menu__direction {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-
-.sort-menu__direction:hover {
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
+.board-menu__item:focus-visible,
+.board-menu__action:focus-visible,
+.sort-menu__item:focus-visible,
+.sort-menu__action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  outline-offset: -2px;
 }
 
 .sort-menu__separator {
@@ -1375,6 +1382,11 @@ select {
 
 :root[data-theme="dark-digital"] .select-content {
   background: var(--control-surface);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+:root[data-theme="dark-digital"] .board-menu,
+:root[data-theme="dark-digital"] .sort-menu {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
 }
 
