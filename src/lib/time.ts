@@ -114,6 +114,22 @@ const TIMEZONE_ABBREVIATION_OFFSETS: Readonly<Record<string, number>> = {
   GALT: -360,
 };
 
+// "Eastern" and "Central" are ambiguous across the US, Europe, and Australia;
+// the US reading is the deliberate choice, consistent with CST above.
+const TIMEZONE_ALIAS_ZONES: Readonly<Record<string, string>> = {
+  PT: "America/Los_Angeles",
+  PACIFIC: "America/Los_Angeles",
+  ET: "America/New_York",
+  EASTERN: "America/New_York",
+  CT: "America/Chicago",
+  CENTRAL: "America/Chicago",
+  MT: "America/Denver",
+  MOUNTAIN: "America/Denver",
+  AKT: "America/Anchorage",
+  ALASKA: "America/Anchorage",
+  HAWAII: "Pacific/Honolulu",
+};
+
 // CLDR long names are used as keys because they are DST-aware. A missing entry
 // deliberately falls back to the GMT/UTC offset instead of guessing a code.
 // Real-world collisions (including IST, CST, AMT, and BST) are intentional.
@@ -236,7 +252,7 @@ const TIMEZONE_LONG_NAME_CODES: Readonly<Record<string, string>> = {
 const zoneOffsetsByYear = new Map<string, Set<number>>();
 const zoneCodesByYear = new Map<string, Set<string>>();
 
-export function resolveTimezoneQuery(query: string): { offset: number; label: string; focusMinutes: number } | null {
+export function resolveTimezoneQuery(query: string, now?: Date): { offset: number; label: string; focusMinutes: number } | null {
   // Strip whitespace everywhere, not just the ends: "est +4" is the natural way to type
   // a code and an offset, and the picker's own offset parser has always accepted it.
   const normalized = query.toUpperCase().replace(/\s+/g, "");
@@ -248,8 +264,16 @@ export function resolveTimezoneQuery(query: string): { offset: number; label: st
     return null;
   }
 
-  const baseName = match[1] ?? "UTC";
-  const baseOffset = TIMEZONE_ABBREVIATION_OFFSETS[baseName];
+  let baseName = match[1] ?? "UTC";
+  let baseOffset = TIMEZONE_ABBREVIATION_OFFSETS[baseName];
+  const aliasZone = TIMEZONE_ALIAS_ZONES[baseName];
+  if (baseOffset === undefined && aliasZone) {
+    const aliasDateTime = now
+      ? getClockDateTime(now, aliasZone)
+      : DateTime.fromObject({ year: 2020, month: 1, day: 15 }, { zone: aliasZone });
+    baseName = getTimezoneCode(aliasDateTime);
+    baseOffset = TIMEZONE_ABBREVIATION_OFFSETS[baseName];
+  }
   if (baseOffset === undefined) {
     return null;
   }
@@ -332,7 +356,11 @@ export function getRelativeTimezoneDeltas(
   // London answer a "UTC" search purely because it drops to +0 every winter, and every
   // label would come out an hour off while London sits on BST.
   const anchorTimezone = anchorLabel
-    ? anchorCandidates.find((timezone) => getZoneCodes(timezone, now).has(anchorLabel))
+    ? anchorCandidates.find(
+        (timezone) =>
+          getZoneCodes(timezone, now).has(anchorLabel) &&
+          getZoneOffsets(timezone, now).has(resolvedOffset),
+      )
     : undefined;
   // Nothing on offer uses the code, so there is no live reading to borrow and the
   // literal offset is the honest fallback.

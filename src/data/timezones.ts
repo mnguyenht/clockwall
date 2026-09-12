@@ -185,7 +185,8 @@ export const anchorTimezoneIds = timezoneOptions
   .filter((option) => validTimezoneIds.has(option.timezone))
   .sort(
     (left, right) =>
-      (popularOrder.get(right.timezone) ?? -1) - (popularOrder.get(left.timezone) ?? -1),
+      (popularOrder.get(left.timezone) ?? Number.MAX_SAFE_INTEGER) -
+      (popularOrder.get(right.timezone) ?? Number.MAX_SAFE_INTEGER),
   )
   .map((option) => option.timezone);
 
@@ -274,14 +275,14 @@ export function searchTimezones(query: string, now: DateTime, limit = 12) {
       .slice(0, limit);
   }
 
-  const resolvedTimezoneQuery = resolveTimezoneQuery(q);
+  const nowDate = now.toJSDate();
+  const resolvedTimezoneQuery = resolveTimezoneQuery(q, nowDate);
   // Starting with a letter is the whole test: resolveTimezoneQuery has already validated
   // the shape, and spelling the offset out again here only re-broke half-typed queries
   // like "est+". Bare numeric offsets keep their existing rank-based path.
   // Test the gmt/utc exclusion against a whitespace-free copy, because "gmt -5" is a
   // supported spelling and must stay on the exact-offset path with the unspaced forms.
   if (resolvedTimezoneQuery && /^[a-z]/.test(q) && !/^(?:gmt|utc)[+-]/.test(q.replace(/\s+/g, ""))) {
-    const nowDate = now.toJSDate();
     const candidates = timezoneOptions
       .filter((option) => validTimezoneIds.has(option.timezone))
       .sort(

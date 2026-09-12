@@ -150,6 +150,7 @@ export function ClockWall({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [coDraggingIds, setCoDraggingIds] = useState<Set<string>>(() => new Set());
   const [flipDeltas, setFlipDeltas] = useState<Map<string, { x: number; y: number }> | null>(null);
+  const [settlingDrop, setSettlingDrop] = useState(false);
   const tileNodes = useRef(new Map<string, HTMLElement>());
   const participatingDragIds = useRef(new Set<string>());
   const dragDelta = useRef({ x: 0, y: 0 });
@@ -178,7 +179,8 @@ export function ClockWall({
   );
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const searchActive = normalizedSearchQuery.length > 0;
-  const resolvedTimezoneQuery = resolveTimezoneQuery(normalizedSearchQuery);
+  const resolvedTimezoneQuery = resolveTimezoneQuery(normalizedSearchQuery, now);
+  const reorderDisabled = resolvedTimezoneQuery !== null;
   const relativeTimezoneDeltas = resolvedTimezoneQuery
     ? getRelativeTimezoneDeltas(
         board.clocks.map((clock) => clock.timezone),
@@ -264,6 +266,23 @@ export function ClockWall({
     };
   }, [flipDeltas]);
 
+  useEffect(() => {
+    if (!settlingDrop) {
+      return;
+    }
+
+    // Clear on the next frame, so the browser paints the settled positions before
+    // transitions are restored. The timeout is a floor, not a duplicate: where
+    // rAF is starved (hidden tab, some embedded webviews) transitions would
+    // otherwise stay suppressed.
+    const frameId = window.requestAnimationFrame(() => setSettlingDrop(false));
+    const timeoutId = window.setTimeout(() => setSettlingDrop(false), 64);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [settlingDrop]);
+
   function resolveDropIndex(overId: string) {
     const direct = movableClockIds.indexOf(overId);
     if (direct !== -1) {
@@ -293,10 +312,15 @@ export function ClockWall({
 
   function handleDragEnd(event: DragEndEvent) {
     snapshotTileRects();
+    setSettlingDrop(true);
     clearDragNodeStyles();
     const { active, over } = event;
     setActiveDragId(null);
     setCoDraggingIds(new Set());
+
+    if (reorderDisabled) {
+      return;
+    }
 
     if (!over) {
       return;
@@ -389,6 +413,7 @@ export function ClockWall({
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
         snapshotTileRects();
+        setSettlingDrop(true);
         clearDragNodeStyles();
         setActiveDragId(null);
         setCoDraggingIds(new Set());
@@ -430,6 +455,8 @@ export function ClockWall({
               flipDelta={flipDeltas?.get(clock.id) ?? null}
               registerTileNode={registerTileNode}
               coDragging={coDraggingIds.has(clock.id)}
+              settlingDrop={settlingDrop}
+              reorderDisabled={reorderDisabled}
             >
               <ClockTile
                 clock={clock}
@@ -464,18 +491,20 @@ type SortableClockTileProps = {
   children: ReactNode;
   coDragging: boolean;
   flipDelta: { x: number; y: number } | null;
+  settlingDrop: boolean;
+  reorderDisabled: boolean;
   registerTileNode: (id: string, node: HTMLElement | null) => void;
 };
 
-function SortableClockTile({ clock, children, coDragging, flipDelta, registerTileNode }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragging, flipDelta, settlingDrop, reorderDisabled, registerTileNode }: SortableClockTileProps) {
   if (clock.pinned) {
-    return <PinnedClockTile clock={clock} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</PinnedClockTile>;
+    return <PinnedClockTile clock={clock} flipDelta={flipDelta} settlingDrop={settlingDrop} registerTileNode={registerTileNode}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock} coDragging={coDragging} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragging={coDragging} flipDelta={flipDelta} settlingDrop={settlingDrop} reorderDisabled={reorderDisabled} registerTileNode={registerTileNode}>{children}</MovableClockTile>;
 }
 
-function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<SortableClockTileProps, "clock" | "children" | "flipDelta" | "registerTileNode">) {
+function PinnedClockTile({ clock, children, flipDelta, settlingDrop, registerTileNode }: Pick<SortableClockTileProps, "clock" | "children" | "flipDelta" | "settlingDrop" | "registerTileNode">) {
   const { setNodeRef, transform, transition } = useSortable({
     id: clock.id,
     disabled: { draggable: true, droppable: true },
@@ -496,7 +525,7 @@ function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<
     transform: flipDelta
       ? `translate3d(${flipDelta.x}px, ${flipDelta.y}px, 0)`
       : CSS.Transform.toString(transform),
-    transition: flipDelta ? "none" : safeTransition,
+    transition: settlingDrop || flipDelta ? "none" : safeTransition,
   } as CSSProperties;
 
   return (
@@ -511,9 +540,10 @@ function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<
   );
 }
 
-function MovableClockTile({ clock, children, coDragging, flipDelta, registerTileNode }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragging, flipDelta, settlingDrop, reorderDisabled, registerTileNode }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
+    disabled: reorderDisabled ? { draggable: true, droppable: true } : false,
     animateLayoutChanges: () => false,
     transition: {
       duration: 260,
@@ -532,7 +562,9 @@ function MovableClockTile({ clock, children, coDragging, flipDelta, registerTile
     ? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)"
     : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
   const style = {
-    transition: flipDelta
+    transition: settlingDrop
+      ? "none"
+      : flipDelta
       ? "none"
       : coDragging
         ? "none"

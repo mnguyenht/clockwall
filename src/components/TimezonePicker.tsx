@@ -35,7 +35,7 @@ export function TimezonePicker({
   const listRef = useRef<HTMLDivElement>(null);
   const now = DateTime.local();
   const results = focused ? searchTimezones(search, now, 12) : [];
-  const resolvedTimezoneQuery = resolveTimezoneQuery(search.trim().toLowerCase());
+  const resolvedTimezoneQuery = resolveTimezoneQuery(search.trim().toLowerCase(), now.toJSDate());
   const relativeDeltas = resolvedTimezoneQuery
     ? getRelativeTimezoneDeltas(
         results.map((option) => option.timezone),

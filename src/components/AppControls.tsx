@@ -119,6 +119,7 @@ export function AppControls({
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
+      searchInputRef.current?.blur();
       onSearchQueryChange("");
       onSearchOpenChange(false);
     }
@@ -214,6 +215,7 @@ export function AppControls({
             className="search-toggle"
             onClick={() => {
               if (searchOpen) {
+                searchInputRef.current?.blur();
                 onSearchQueryChange("");
               }
               onSearchOpenChange(!searchOpen);
@@ -232,6 +234,14 @@ export function AppControls({
               onKeyDown={handleSearchKeyDown}
               placeholder="Search"
               aria-label="Search clocks"
+              tabIndex={searchOpen ? undefined : -1}
+              aria-hidden={!searchOpen}
+              // The collapsed chip hides this field with width:0, not display:none, so it
+              // stays a live, focusable, typeable input. Blurring on Escape is not enough:
+              // anything that calls focus() puts the caret back in an invisible box and
+              // typing silently filters the wall again. Disabled is the only state a
+              // browser refuses to focus at all.
+              disabled={!searchOpen}
               name="clock-search"
               autoComplete="off"
               autoCorrect="off"
