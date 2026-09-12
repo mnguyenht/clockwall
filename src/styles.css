@@ -933,7 +933,10 @@ select {
   transition: background-color 220ms ease, border-color 220ms ease;
 }
 
-.app-shell--dark-digital .search-toggle {
+:root[data-theme="dark-digital"] .corner-control .select-trigger,
+:root[data-theme="dark-digital"] .corner-control .ui-button,
+:root[data-theme="dark-digital"] .search-toggle,
+:root[data-theme="dark-digital"] .sort-button {
   background: color-mix(in srgb, var(--digital-glow) 18%, #071012);
   color: #f4fff9;
   border-color: color-mix(in srgb, var(--digital-glow) 42%, rgba(255, 255, 255, 0.2));
@@ -981,7 +984,7 @@ select {
   border-color: var(--control-border);
 }
 
-.app-shell--dark-digital .search-chip--open .search-toggle {
+:root[data-theme="dark-digital"] .search-chip--open .search-toggle {
   background: var(--control-surface);
   border-color: var(--control-border);
 }
@@ -1277,7 +1280,7 @@ select {
 
 .sort-menu {
   z-index: 50;
-  width: 150px;
+  width: 168px;
   border: 1px solid var(--control-border);
   border-radius: 12px;
   background: var(--control-surface);
@@ -1300,7 +1303,6 @@ select {
   gap: 2px;
 }
 
-.sort-menu__item,
 .sort-menu__action {
   display: flex;
   width: 100%;
@@ -1320,8 +1322,43 @@ select {
   text-align: left;
 }
 
-.sort-menu__item:hover,
 .sort-menu__action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.sort-menu__row {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 6px;
+  color: var(--control-text);
+  font-size: 0.9rem;
+  font-weight: 620;
+  padding: 0 6px 0 10px;
+}
+
+.sort-menu__directions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.sort-menu__direction {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sort-menu__direction:hover {
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
@@ -1336,7 +1373,7 @@ select {
   opacity: 0.48;
 }
 
-.app-shell--dark-digital .select-content {
+:root[data-theme="dark-digital"] .select-content {
   background: var(--control-surface);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
 }
@@ -1505,6 +1542,12 @@ select {
   animation: overlay-fade-out 120ms ease-in;
 }
 
+:root[data-theme="dark-digital"] .dialog-overlay {
+  background: rgba(2, 6, 8, 0.52);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 .dialog-content {
   position: fixed;
   z-index: 50;
@@ -1540,9 +1583,14 @@ select {
   width: min(560px, calc(100vw - 32px));
 }
 
-.app-shell--dark-digital .dialog-content {
-  background: #101719;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+:root[data-theme="dark-digital"] .dialog-content {
+  background: color-mix(in srgb, #0b1215 70%, transparent);
+  backdrop-filter: blur(30px) saturate(185%);
+  -webkit-backdrop-filter: blur(30px) saturate(185%);
+  border-color: color-mix(in srgb, var(--digital-glow) 26%, rgba(255, 255, 255, 0.14));
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 color-mix(in srgb, var(--digital-glow) 16%, rgba(255, 255, 255, 0.10));
 }
 
 .dialog-close {
@@ -2001,7 +2049,7 @@ select {
   animation: floating-menu-out 100ms ease-in;
 }
 
-.app-shell--dark-digital .context-menu-content {
+:root[data-theme="dark-digital"] .context-menu-content {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
 }
 

@@ -1,4 +1,4 @@
-import { ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -15,14 +15,10 @@ type SortMenuProps = {
 const sortOptions: Array<{
   label: string;
   key: ClockSortKey;
-  direction: ClockSortDirection;
 }> = [
-  { label: "Location A–Z", key: "locationName", direction: "ascending" },
-  { label: "Location Z–A", key: "locationName", direction: "descending" },
-  { label: "Secondary A–Z", key: "secondaryName", direction: "ascending" },
-  { label: "Secondary Z–A", key: "secondaryName", direction: "descending" },
-  { label: "Time, Earliest First", key: "time", direction: "ascending" },
-  { label: "Time, Latest First", key: "time", direction: "descending" },
+  { label: "Location", key: "locationName" },
+  { label: "Name", key: "secondaryName" },
+  { label: "Time", key: "time" },
 ];
 
 export function SortMenu({ canRevert, onSort, onRevert }: SortMenuProps) {
@@ -55,14 +51,29 @@ export function SortMenu({ canRevert, onSort, onRevert }: SortMenuProps) {
       <PopoverContent className="sort-menu" side="top" align="start">
         <div className="sort-menu__list">
           {sortOptions.map((option) => (
-            <button
-              key={`${option.key}-${option.direction}`}
-              type="button"
-              className="sort-menu__item"
-              onClick={() => sort(option.key, option.direction)}
-            >
-              {option.label}
-            </button>
+            <div key={option.key} className="sort-menu__row">
+              <span>{option.label}</span>
+              <div className="sort-menu__directions">
+                <button
+                  type="button"
+                  className="sort-menu__direction"
+                  aria-label={`Sort by ${option.label}, ascending`}
+                  title={`Sort by ${option.label}, ascending`}
+                  onClick={() => sort(option.key, "ascending")}
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="sort-menu__direction"
+                  aria-label={`Sort by ${option.label}, descending`}
+                  title={`Sort by ${option.label}, descending`}
+                  onClick={() => sort(option.key, "descending")}
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
         <div className="sort-menu__separator" />
