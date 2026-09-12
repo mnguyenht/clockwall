@@ -2147,11 +2147,13 @@ select {
 .background-tuner {
   position: fixed;
   z-index: 200;
-  top: 12px;
+  /* Clears the top-right controls (top: 22px + 42px tall), so the panel can never
+     sit on top of the search, theme and settings buttons. */
+  top: 76px;
   right: 12px;
   display: grid;
-  width: min(328px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100vh - 88px);
   gap: 16px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2178,11 +2180,28 @@ select {
   padding: 7px 9px;
 }
 
+.background-tuner--collapsed {
+  width: auto;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+}
+
+.background-tuner--collapsed button {
+  padding: 9px 14px;
+}
+
 .background-tuner__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.background-tuner__header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
 }
 
 .background-tuner h2,

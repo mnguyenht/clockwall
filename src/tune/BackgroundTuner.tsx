@@ -28,6 +28,7 @@ const defaults: TuningValues = {
 export function TunePanel() {
   const [values, setValues] = useState<TuningValues>(defaults);
   const [forceDarkTheme, setForceDarkTheme] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     if (!forceDarkTheme) {
@@ -93,6 +94,14 @@ export function TunePanel() {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
+  if (collapsed) {
+    return (
+      <aside className="background-tuner background-tuner--collapsed" aria-label="Tuning panel">
+        <button type="button" onClick={() => setCollapsed(false)}>Tune</button>
+      </aside>
+    );
+  }
+
   return (
     <aside className="background-tuner" aria-label="Tuning panel">
       <div className="background-tuner__header">
@@ -100,7 +109,10 @@ export function TunePanel() {
           <h2>Tuning panel</h2>
           <p>Adjust the clock wall styles live.</p>
         </div>
-        <button type="button" onClick={() => setValues({ ...defaults })}>Reset To Current</button>
+        <div className="background-tuner__header-actions">
+          <button type="button" onClick={() => setValues({ ...defaults })}>Reset To Current</button>
+          <button type="button" onClick={() => setCollapsed(true)} aria-label="Collapse tuning panel">Hide</button>
+        </div>
       </div>
 
       <label className="background-tuner__checkbox">
