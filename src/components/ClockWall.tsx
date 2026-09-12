@@ -14,9 +14,10 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
+  type SortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Board, Clock, ThemeMode } from "../types";
 import { ClockTile } from "./ClockTile";
 import { getClockDateTime, getClockPrimaryName, getTimezoneCode } from "../lib/time";
@@ -40,6 +41,84 @@ type ClockWallProps = {
   onClearSelection: () => void;
 };
 
+function computeGroupOrder(
+  itemIds: string[],
+  selectedIds: Set<string>,
+  activeId: string,
+  fromIndex: number,
+  toIndex: number,
+): string[] {
+  const picked = itemIds
+    .map((id, index) => ({ id, index }))
+    .filter((entry) => selectedIds.has(entry.id));
+
+  if (!selectedIds.has(activeId) || picked.length < 2) {
+    return arrayMove(itemIds, fromIndex, toIndex);
+  }
+
+  const delta = toIndex - fromIndex;
+  const n = itemIds.length;
+
+  // Clamp the group as a unit so the gaps between the picked clocks never collapse.
+  let shift = delta;
+  const first = picked[0].index + delta;
+  const last = picked[picked.length - 1].index + delta;
+  if (first < 0) shift -= first;
+  if (last > n - 1) shift -= last - (n - 1);
+
+  const placed: Array<string | null> = new Array(n).fill(null);
+  picked.forEach((entry) => {
+    placed[entry.index + shift] = entry.id;
+  });
+  const rest = itemIds.filter((id) => !selectedIds.has(id));
+  let restIndex = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (!placed[i]) {
+      placed[i] = rest[restIndex];
+      restIndex += 1;
+    }
+  }
+  return placed as string[];
+}
+
+function createGroupSortingStrategy(itemIds: string[], selectedIds: Set<string>, activeId: string | null): SortingStrategy {
+  const selectedItemCount = itemIds.filter((id) => selectedIds.has(id)).length;
+
+  return (args) => {
+    if (!activeId || selectedItemCount < 2 || !selectedIds.has(activeId)) {
+      return rectSortingStrategy(args);
+    }
+
+    const { rects, activeIndex, overIndex, index } = args;
+    if (
+      activeIndex < 0 || activeIndex >= itemIds.length ||
+      overIndex < 0 || overIndex >= itemIds.length ||
+      index < 0 || index >= itemIds.length ||
+      !rects[index]
+    ) {
+      return null;
+    }
+
+    const newOrder = computeGroupOrder(itemIds, selectedIds, activeId, activeIndex, overIndex);
+    const newIndex = newOrder.indexOf(itemIds[index]);
+    if (newIndex === index) {
+      return null;
+    }
+
+    const newRect = newIndex >= 0 && newIndex < rects.length ? rects[newIndex] : null;
+    if (!newRect) {
+      return null;
+    }
+
+    return {
+      x: newRect.left - rects[index].left,
+      y: newRect.top - rects[index].top,
+      scaleX: 1,
+      scaleY: 1,
+    };
+  };
+}
+
 export function ClockWall({
   board,
   theme,
@@ -59,9 +138,11 @@ export function ClockWall({
   onClearSelection,
 }: ClockWallProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [dragDelta, setDragDelta] = useState<{ x: number; y: number } | null>(null);
+  const [coDraggingIds, setCoDraggingIds] = useState<Set<string>>(() => new Set());
   const [flipDeltas, setFlipDeltas] = useState<Map<string, { x: number; y: number }> | null>(null);
   const tileNodes = useRef(new Map<string, HTMLElement>());
+  const participatingDragIds = useRef(new Set<string>());
+  const dragDelta = useRef({ x: 0, y: 0 });
   const flipFirstRects = useRef<Map<string, DOMRect> | null>(null);
   const registerTileNode = useCallback((id: string, node: HTMLElement | null) => {
     if (node) {
@@ -92,7 +173,12 @@ export function ClockWall({
     : board.clocks;
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
   const sortableItems = movableClockIds;
-  const dragRotation = useVelocityRotation(activeDragId !== null, dragDelta?.x ?? 0);
+  const selectedIdSet = useMemo(() => new Set(selectedClockIds), [selectedClockIds]);
+  const sortingStrategy = useMemo(
+    () => createGroupSortingStrategy(sortableItems, selectedIdSet, activeDragId),
+    [sortableItems, selectedIdSet, activeDragId],
+  );
+  useVelocityRotation(activeDragId !== null, dragDelta, participatingDragIds, tileNodes);
 
   useLayoutEffect(() => {
     const firstRects = flipFirstRects.current;
@@ -166,9 +252,10 @@ export function ClockWall({
 
   function handleDragEnd(event: DragEndEvent) {
     snapshotTileRects();
+    clearDragNodeStyles();
     const { active, over } = event;
     setActiveDragId(null);
-    setDragDelta(null);
+    setCoDraggingIds(new Set());
 
     if (!over) {
       return;
@@ -186,39 +273,13 @@ export function ClockWall({
       return;
     }
 
-    const selectedSet = new Set(selectedClockIds);
-    const picked = movableClockIds
-      .map((id, index) => ({ id, index }))
-      .filter((entry) => selectedSet.has(entry.id));
-    let reorderedMovableIds: string[];
-
-    if (!selectedSet.has(activeClock.id) || picked.length < 2) {
-      reorderedMovableIds = arrayMove(movableClockIds, oldIndex, newIndex);
-    } else {
-      const delta = newIndex - oldIndex;
-      const n = movableClockIds.length;
-
-      // Clamp the group as a unit so the gaps between the picked clocks never collapse.
-      let shift = delta;
-      const first = picked[0].index + delta;
-      const last = picked[picked.length - 1].index + delta;
-      if (first < 0) shift -= first;
-      if (last > n - 1) shift -= last - (n - 1);
-
-      const placed: Array<string | null> = new Array(n).fill(null);
-      picked.forEach((entry) => {
-        placed[entry.index + shift] = entry.id;
-      });
-      const rest = movableClockIds.filter((id) => !selectedSet.has(id));
-      let restIndex = 0;
-      for (let i = 0; i < n; i += 1) {
-        if (!placed[i]) {
-          placed[i] = rest[restIndex];
-          restIndex += 1;
-        }
-      }
-      reorderedMovableIds = placed as string[];
-    }
+    const reorderedMovableIds = computeGroupOrder(
+      movableClockIds,
+      selectedIdSet,
+      activeClock.id,
+      oldIndex,
+      newIndex,
+    );
 
     const nextClockIds = board.clocks.map((clock) => {
       if (clock.pinned || !movableClockIds.includes(clock.id)) {
@@ -228,6 +289,16 @@ export function ClockWall({
       return reorderedMovableIds.shift() ?? clock.id;
     });
     onReorderClocks(nextClockIds);
+  }
+
+  function clearDragNodeStyles() {
+    participatingDragIds.current.forEach((id) => {
+      const node = tileNodes.current.get(id);
+      node?.style.removeProperty("transform");
+      node?.style.removeProperty("--drag-rotation");
+    });
+    participatingDragIds.current.clear();
+    dragDelta.current = { x: 0, y: 0 };
   }
 
   if (board.clocks.length === 0) {
@@ -252,18 +323,37 @@ export function ClockWall({
       collisionDetection={closestCenter}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={({ active }) => {
-        setActiveDragId(String(active.id));
-        setDragDelta({ x: 0, y: 0 });
+        const activeId = String(active.id);
+        const nextCoDraggingIds = selectedIdSet.has(activeId)
+          ? new Set(movableClockIds.filter((id) => id !== activeId && selectedIdSet.has(id)))
+          : new Set<string>();
+        participatingDragIds.current = new Set([activeId, ...nextCoDraggingIds]);
+        dragDelta.current = { x: 0, y: 0 };
+        setCoDraggingIds(nextCoDraggingIds);
+        setActiveDragId(activeId);
       }}
-      onDragMove={(event) => setDragDelta(event.delta)}
+      onDragMove={(event) => {
+        dragDelta.current = event.delta;
+        participatingDragIds.current.forEach((id) => {
+          if (id === String(event.active.id)) {
+            return;
+          }
+
+          const node = tileNodes.current.get(id);
+          if (node) {
+            node.style.transform = `translate3d(${event.delta.x}px, ${event.delta.y}px, 0)`;
+          }
+        });
+      }}
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
         snapshotTileRects();
+        clearDragNodeStyles();
         setActiveDragId(null);
-        setDragDelta(null);
+        setCoDraggingIds(new Set());
       }}
     >
-      <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
+      <SortableContext items={sortableItems} strategy={sortingStrategy}>
         <main
           className={`clock-wall clock-wall--${theme} ${searchActive ? 'clock-wall--searching' : ''}`}
           aria-label={`${board.name} clocks`}
@@ -279,18 +369,9 @@ export function ClockWall({
             <SortableClockTile
               key={clock.id}
               clock={clock}
-              dragRotation={dragRotation}
               flipDelta={flipDeltas?.get(clock.id) ?? null}
               registerTileNode={registerTileNode}
-              coDragOffset={
-                !clock.pinned &&
-                activeDragId !== null &&
-                activeDragId !== clock.id &&
-                selectedClockIds.includes(activeDragId) &&
-                selectedClockIds.includes(clock.id)
-                  ? dragDelta
-                  : null
-              }
+              coDragging={coDraggingIds.has(clock.id)}
             >
               <ClockTile
                 clock={clock}
@@ -337,24 +418,23 @@ function clockMatchesSearch(clock: Clock, now: Date, query: string) {
 type SortableClockTileProps = {
   clock: Clock;
   children: ReactNode;
-  coDragOffset: { x: number; y: number } | null;
-  dragRotation: number;
+  coDragging: boolean;
   flipDelta: { x: number; y: number } | null;
   registerTileNode: (id: string, node: HTMLElement | null) => void;
 };
 
-function SortableClockTile({ clock, children, coDragOffset, dragRotation, flipDelta, registerTileNode }: SortableClockTileProps) {
+function SortableClockTile({ clock, children, coDragging, flipDelta, registerTileNode }: SortableClockTileProps) {
   if (clock.pinned) {
     return <PinnedClockTile clock={clock} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</PinnedClockTile>;
   }
 
-  return <MovableClockTile clock={clock} coDragOffset={coDragOffset} dragRotation={dragRotation} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</MovableClockTile>;
+  return <MovableClockTile clock={clock} coDragging={coDragging} flipDelta={flipDelta} registerTileNode={registerTileNode}>{children}</MovableClockTile>;
 }
 
 function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<SortableClockTileProps, "clock" | "children" | "flipDelta" | "registerTileNode">) {
   const { setNodeRef, transform, transition } = useSortable({
     id: clock.id,
-    disabled: true,
+    disabled: { draggable: true, droppable: true },
     transition: {
       duration: 260,
       easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
@@ -387,7 +467,7 @@ function PinnedClockTile({ clock, children, flipDelta, registerTileNode }: Pick<
   );
 }
 
-function MovableClockTile({ clock, children, coDragOffset, dragRotation, flipDelta, registerTileNode }: SortableClockTileProps) {
+function MovableClockTile({ clock, children, coDragging, flipDelta, registerTileNode }: SortableClockTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: clock.id,
     animateLayoutChanges: () => false,
@@ -402,28 +482,27 @@ function MovableClockTile({ clock, children, coDragOffset, dragRotation, flipDel
   }, [clock.id, registerTileNode, setNodeRef]);
   const transformValue = flipDelta
     ? `translate3d(${flipDelta.x}px, ${flipDelta.y}px, 0)`
-    : coDragOffset
-      ? `translate3d(${coDragOffset.x}px, ${coDragOffset.y}px, 0)`
-      : CSS.Transform.toString(transform);
+    : CSS.Transform.toString(transform);
   // dnd-kit's getTransition disabledTransition branch returns a truthy 0ms value.
   const safeTransition = transition && /\b0ms\b/.test(transition)
     ? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)"
     : transition ?? "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
   const style = {
-    "--drag-rotation": `${isDragging || coDragOffset ? dragRotation : 0}deg`,
-    transform: transformValue,
     transition: flipDelta
       ? "none"
-      : coDragOffset
+      : coDragging
         ? "none"
         : isDragging
           ? undefined
           : safeTransition,
   } as CSSProperties;
+  if (!coDragging) {
+    style.transform = transformValue;
+  }
   const className = [
     "sortable-clock",
     isDragging ? "sortable-clock--dragging" : "",
-    coDragOffset ? "sortable-clock--co-dragging" : "",
+    coDragging ? "sortable-clock--co-dragging" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -442,8 +521,12 @@ function MovableClockTile({ clock, children, coDragOffset, dragRotation, flipDel
   );
 }
 
-function useVelocityRotation(isDragging: boolean, x: number) {
-  const [rotation, setRotation] = useState(0);
+function useVelocityRotation(
+  isDragging: boolean,
+  dragDelta: { current: { x: number; y: number } },
+  participatingDragIds: { current: Set<string> },
+  tileNodes: { current: Map<string, HTMLElement> },
+) {
   const targetRotation = useRef(0);
   const currentRotation = useRef(0);
   const lastMotion = useRef({ time: 0, x: 0 });
@@ -452,38 +535,34 @@ function useVelocityRotation(isDragging: boolean, x: number) {
     if (!isDragging) {
       lastMotion.current = { time: 0, x: 0 };
       targetRotation.current = 0;
+      currentRotation.current = 0;
       return;
     }
 
-    const now = Date.now();
-    const previous = lastMotion.current;
-    if (previous.time) {
-      const deltaX = x - previous.x;
-      const deltaTime = Math.max(16, now - previous.time);
-      targetRotation.current = Math.max(-6, Math.min(6, (deltaX / deltaTime) * 86));
-    }
-    lastMotion.current = { time: now, x };
-  }, [isDragging, x]);
-
-  useEffect(() => {
     let frameId = 0;
+    lastMotion.current = { time: Date.now(), x: dragDelta.current.x };
 
     function tick() {
-      if (!isDragging) {
-        targetRotation.current = 0;
-      } else {
-        targetRotation.current *= 0.9;
+      const x = dragDelta.current.x;
+      const previous = lastMotion.current;
+      if (x !== previous.x) {
+        const now = Date.now();
+        const deltaX = x - previous.x;
+        const deltaTime = Math.max(16, now - previous.time);
+        targetRotation.current = Math.max(-6, Math.min(6, (deltaX / deltaTime) * 86));
+        lastMotion.current = { time: now, x };
       }
 
+      targetRotation.current *= 0.9;
       currentRotation.current += (targetRotation.current - currentRotation.current) * 0.18;
       const nextRotation = Math.abs(currentRotation.current) < 0.04 ? 0 : currentRotation.current;
-      setRotation(nextRotation);
+      participatingDragIds.current.forEach((id) => {
+        tileNodes.current.get(id)?.style.setProperty("--drag-rotation", `${nextRotation}deg`);
+      });
       frameId = window.requestAnimationFrame(tick);
     }
 
     frameId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frameId);
-  }, [isDragging]);
-
-  return rotation;
+  }, [dragDelta, isDragging, participatingDragIds, tileNodes]);
 }
