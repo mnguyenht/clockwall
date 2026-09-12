@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { getRelativeTimezoneDeltas, getZoneCodes, resolveTimezoneQuery } from "../lib/time";
 import { countryNames, zoneCountries } from "./zoneCountries.generated";
 
 export type TimezoneOption = {
@@ -180,6 +181,13 @@ const validTimezoneIds = new Set(
     })
     .map((option) => option.timezone),
 );
+export const anchorTimezoneIds = timezoneOptions
+  .filter((option) => validTimezoneIds.has(option.timezone))
+  .sort(
+    (left, right) =>
+      (popularOrder.get(right.timezone) ?? -1) - (popularOrder.get(left.timezone) ?? -1),
+  )
+  .map((option) => option.timezone);
 
 export function getTimezoneLabel(timezone: string) {
   return optionByTimezone.get(timezone)?.label ?? timezone.split("/").pop()?.replaceAll("_", " ") ?? timezone;
@@ -264,6 +272,70 @@ export function searchTimezones(query: string, now: DateTime, limit = 12) {
           (popularOrder.get(right.timezone) ?? Number.MAX_SAFE_INTEGER),
       )
       .slice(0, limit);
+  }
+
+  const resolvedTimezoneQuery = resolveTimezoneQuery(q);
+  // Starting with a letter is the whole test: resolveTimezoneQuery has already validated
+  // the shape, and spelling the offset out again here only re-broke half-typed queries
+  // like "est+". Bare numeric offsets keep their existing rank-based path.
+  // Test the gmt/utc exclusion against a whitespace-free copy, because "gmt -5" is a
+  // supported spelling and must stay on the exact-offset path with the unspaced forms.
+  if (resolvedTimezoneQuery && /^[a-z]/.test(q) && !/^(?:gmt|utc)[+-]/.test(q.replace(/\s+/g, ""))) {
+    const nowDate = now.toJSDate();
+    const candidates = timezoneOptions
+      .filter((option) => validTimezoneIds.has(option.timezone))
+      .sort(
+        (left, right) =>
+          Number(getZoneCodes(right.timezone, nowDate).has(resolvedTimezoneQuery.label)) -
+            Number(getZoneCodes(left.timezone, nowDate).has(resolvedTimezoneQuery.label)) ||
+          Number(right.popular) - Number(left.popular) ||
+          left.label.localeCompare(right.label),
+      );
+    const deltas = getRelativeTimezoneDeltas(
+      candidates.map((option) => option.timezone),
+      nowDate,
+      resolvedTimezoneQuery.offset,
+      anchorTimezoneIds,
+      resolvedTimezoneQuery.label,
+    );
+    const groups = new Map<number, TimezoneOption[]>();
+
+    candidates.forEach((option, index) => {
+      const delta = deltas[index];
+      const group = groups.get(delta) ?? [];
+      group.push(option);
+      groups.set(delta, group);
+    });
+
+    for (const [delta, group] of groups) {
+      group.sort(
+        (left, right) =>
+          (delta === resolvedTimezoneQuery.focusMinutes
+            ? Number(getZoneCodes(right.timezone, nowDate).has(resolvedTimezoneQuery.label)) -
+              Number(getZoneCodes(left.timezone, nowDate).has(resolvedTimezoneQuery.label))
+            : 0) ||
+          Number(right.popular) - Number(left.popular) || left.label.localeCompare(right.label),
+      );
+    }
+
+    const exactMatches = groups.get(resolvedTimezoneQuery.focusMinutes) ?? [];
+    const neighbours = [...groups.entries()]
+      .filter(([delta]) => delta !== resolvedTimezoneQuery.focusMinutes)
+      .sort(
+        ([left], [right]) =>
+          Math.abs(left - resolvedTimezoneQuery.focusMinutes) - Math.abs(right - resolvedTimezoneQuery.focusMinutes) ||
+          Number(right - resolvedTimezoneQuery.focusMinutes > 0) - Number(left - resolvedTimezoneQuery.focusMinutes > 0),
+      )
+      .map(([, options]) => options[0]);
+
+    const cappedExactMatches = exactMatches.slice(0, Math.min(3, limit));
+    const selectedNeighbours = neighbours.slice(0, limit - cappedExactMatches.length);
+    const remainingExactMatches = exactMatches.slice(
+      cappedExactMatches.length,
+      cappedExactMatches.length + limit - cappedExactMatches.length - selectedNeighbours.length,
+    );
+
+    return [...cappedExactMatches, ...selectedNeighbours, ...remainingExactMatches];
   }
 
   const qCompact = q.replace(/[^a-z0-9+:-]/g, "");

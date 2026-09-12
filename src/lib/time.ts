@@ -236,30 +236,36 @@ const TIMEZONE_LONG_NAME_CODES: Readonly<Record<string, string>> = {
 const zoneOffsetsByYear = new Map<string, Set<number>>();
 const zoneCodesByYear = new Map<string, Set<string>>();
 
-export function resolveTimezoneQuery(query: string): { offset: number; label: string } | null {
-  const normalized = query.trim().toUpperCase();
-  const abbreviationOffset = TIMEZONE_ABBREVIATION_OFFSETS[normalized];
-  if (abbreviationOffset !== undefined) {
-    return { offset: abbreviationOffset, label: normalized };
-  }
-
-  const match = normalized.match(/^(?:UTC|GMT)?([+-])(\d{1,2})(?::?(\d{2}))?$/);
-  if (!match) {
+export function resolveTimezoneQuery(query: string): { offset: number; label: string; focusMinutes: number } | null {
+  // Strip whitespace everywhere, not just the ends: "est +4" is the natural way to type
+  // a code and an offset, and the picker's own offset parser has always accepted it.
+  const normalized = query.toUpperCase().replace(/\s+/g, "");
+  // The hour digits and a dangling colon are optional so that half-typed offsets keep
+  // working: "EST+" and "EST+1:" resolve as EST rather than collapsing to null, which
+  // would blank the wall between one keystroke and the next.
+  const match = normalized.match(/^([A-Z]+)?(?:([+-])(\d{1,2})?(?::?(\d{2}))?)?:?$/);
+  if (!match || (!match[1] && !match[2])) {
     return null;
   }
 
-  const hours = Number(match[2]);
-  const minutes = Number(match[3] ?? "0");
+  const baseName = match[1] ?? "UTC";
+  const baseOffset = TIMEZONE_ABBREVIATION_OFFSETS[baseName];
+  if (baseOffset === undefined) {
+    return null;
+  }
+
+  const hours = Number(match[3] ?? "0");
+  const minutes = Number(match[4] ?? "0");
   if (hours > 23 || minutes > 59) {
     return null;
   }
 
   const offset = hours * 60 + minutes;
-  const signedOffset = match[1] === "-" ? -offset : offset;
-  const minuteLabel = minutes > 0 ? `:${String(minutes).padStart(2, "0")}` : "";
+  const signedOffset = match[2] === "-" ? -offset : offset;
   return {
-    offset: signedOffset,
-    label: `UTC${match[1]}${hours}${minuteLabel}`,
+    offset: baseOffset,
+    label: baseName,
+    focusMinutes: signedOffset,
   };
 }
 
@@ -313,6 +319,48 @@ export function getClockDateTime(now: Date, timezone: string) {
   return DateTime.fromJSDate(now).setZone(timezone);
 }
 
+export function getRelativeTimezoneDeltas(
+  timezones: string[],
+  now: Date,
+  resolvedOffset: number,
+  anchorCandidates: string[] = timezones,
+  anchorLabel?: string,
+): number[] {
+  // Anchor on a zone that actually USES the searched code, not merely one whose year
+  // includes that offset. In September "EST" must anchor to New York living at -240 on
+  // EDT, so the deltas match the clocks on screen. Matching by offset instead would let
+  // London answer a "UTC" search purely because it drops to +0 every winter, and every
+  // label would come out an hour off while London sits on BST.
+  const anchorTimezone = anchorLabel
+    ? anchorCandidates.find((timezone) => getZoneCodes(timezone, now).has(anchorLabel))
+    : undefined;
+  // Nothing on offer uses the code, so there is no live reading to borrow and the
+  // literal offset is the honest fallback.
+  const anchorOffset = anchorTimezone
+    ? getClockDateTime(now, anchorTimezone).offset
+    : resolvedOffset;
+
+  return timezones.map((timezone) => getClockDateTime(now, timezone).offset - anchorOffset);
+}
+
+export function formatRelativeTimezoneCode(label: string, deltaMinutes: number): string {
+  const match = label.match(/^([A-Za-z]+)(?:([+-])(\d{1,2})(?::?(\d{2}))?)?$/);
+  const existingOffset = match?.[2]
+    ? (match[2] === "-" ? -1 : 1) * (Number(match[3]) * 60 + Number(match[4] ?? "0"))
+    : 0;
+  const combinedDeltaMinutes = existingOffset + deltaMinutes;
+  const baseName = match?.[1] ?? label;
+
+  if (combinedDeltaMinutes === 0) {
+    return baseName;
+  }
+
+  const absoluteMinutes = Math.abs(combinedDeltaMinutes);
+  const hours = Math.floor(absoluteMinutes / 60);
+  const minutes = absoluteMinutes % 60;
+  return `${baseName}${combinedDeltaMinutes > 0 ? "+" : "-"}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}`;
+}
+
 export function getTimezoneCode(dateTime: DateTime) {
   const offsetNameShort = dateTime.offsetNameShort ?? dateTime.toFormat("ZZZZ");
   if (!/^(GMT|UTC)[+-]/.test(offsetNameShort)) {
@@ -332,6 +380,38 @@ export function getClockPrimaryName(clock: Clock, dateTime: DateTime, timezoneCo
   };
 
   return modes[clock.nameMode];
+}
+
+export function clockMatchesSearch(
+  clock: Clock,
+  now: Date,
+  query: string,
+  resolvedTimezoneQuery: { offset: number; label: string; focusMinutes: number } | null,
+) {
+  const dateTime = getClockDateTime(now, clock.timezone);
+  const haystack = [
+    clock.locationName,
+    clock.secondaryName,
+    clock.timezone,
+    getTimezoneCode(dateTime),
+    dateTime.offsetNameLong,
+    getClockPrimaryName(clock, dateTime),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  // A deliberate code lookup must not be widened by an accidental substring match.
+  const textMatches = resolvedTimezoneQuery === null
+    ? haystack.includes(query)
+    : new RegExp(`(?:^|[^a-z0-9])${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(haystack);
+
+  if (textMatches) {
+    return true;
+  }
+
+  return resolvedTimezoneQuery !== null &&
+    getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset + resolvedTimezoneQuery.focusMinutes);
 }
 
 export function getDayStatus(dateTime: DateTime) {

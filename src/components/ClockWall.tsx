@@ -22,11 +22,13 @@ import { getTimezoneCountryLabel } from "../data/timezones";
 import type { Board, Clock, ThemeMode } from "../types";
 import { ClockTile } from "./ClockTile";
 import {
+  clockMatchesSearch,
+  formatRelativeTimezoneCode,
   getClockDateTime,
   getClockPrimaryName,
+  getRelativeTimezoneDeltas,
   getTimezoneCode,
   getZoneCodes,
-  getZoneOffsets,
   resolveTimezoneQuery,
 } from "../lib/time";
 
@@ -177,9 +179,39 @@ export function ClockWall({
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const searchActive = normalizedSearchQuery.length > 0;
   const resolvedTimezoneQuery = resolveTimezoneQuery(normalizedSearchQuery);
-  const visibleClocks = normalizedSearchQuery
-    ? board.clocks.filter((clock) => clockMatchesSearch(clock, now, normalizedSearchQuery, resolvedTimezoneQuery))
-    : board.clocks;
+  const relativeTimezoneDeltas = resolvedTimezoneQuery
+    ? getRelativeTimezoneDeltas(
+        board.clocks.map((clock) => clock.timezone),
+        now,
+        resolvedTimezoneQuery.offset,
+        undefined,
+        resolvedTimezoneQuery.label,
+      )
+    : [];
+  const relativeTimezoneDeltaById = new Map(
+    board.clocks.map((clock, index) => [clock.id, relativeTimezoneDeltas[index]]),
+  );
+  const visibleClocks = (() => {
+    if (!normalizedSearchQuery) {
+      return board.clocks;
+    }
+    if (!resolvedTimezoneQuery) {
+      return board.clocks.filter((clock) => clockMatchesSearch(clock, now, normalizedSearchQuery, resolvedTimezoneQuery));
+    }
+
+    const sortedUnpinnedClocks = board.clocks
+      .map((clock, index) => ({ clock, index }))
+      .filter(({ clock }) => !clock.pinned)
+      .sort((left, right) =>
+        (relativeTimezoneDeltas[left.index] ?? 0) - (relativeTimezoneDeltas[right.index] ?? 0) ||
+        left.index - right.index,
+      )
+      .map(({ clock }) => clock);
+
+    return board.clocks.map((clock) =>
+      clock.pinned ? clock : (sortedUnpinnedClocks.shift() ?? clock),
+    );
+  })();
   const movableClockIds = visibleClocks.filter((clock) => !clock.pinned).map((clock) => clock.id);
   const sortableItems = movableClockIds;
   const selectedIdSet = useMemo(() => new Set(selectedClockIds), [selectedClockIds]);
@@ -374,16 +406,23 @@ export function ClockWall({
         >
           {visibleClocks.map((clock) => {
             const clockIndex = board.clocks.findIndex((candidate) => candidate.id === clock.id);
-            const matchesResolvedTimezone = resolvedTimezoneQuery
-              ? getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset)
-              : false;
+            const deltaMinutes = relativeTimezoneDeltaById.get(clock.id) ?? 0;
             // countryLabel carries a " +4" suffix meaning "and 4 more countries",
             // which reads fine in the timezone picker but not here: sitting beside a
             // code like UTC+7 it looks like part of an offset. Show the primary
             // country only. The picker keeps the full label.
-            const timezoneSubheaderOverride = matchesResolvedTimezone
+            const timezoneSubheaderOverride = resolvedTimezoneQuery
               ? getTimezoneCountryLabel(clock.timezone).replace(/\s\+\d+$/, "") || undefined
               : undefined;
+            let timezoneCodeOverride: string | undefined;
+            if (resolvedTimezoneQuery) {
+              timezoneCodeOverride = deltaMinutes === 0
+                ? (getZoneCodes(clock.timezone, now).has(resolvedTimezoneQuery.label) ||
+                    /^UTC[+-]/.test(resolvedTimezoneQuery.label))
+                  ? resolvedTimezoneQuery.label
+                  : undefined
+                : formatRelativeTimezoneCode(resolvedTimezoneQuery.label, deltaMinutes);
+            }
             return (
             <SortableClockTile
               key={clock.id}
@@ -396,14 +435,7 @@ export function ClockWall({
                 clock={clock}
                 now={now}
                 theme={theme}
-                timezoneCodeOverride={
-                  resolvedTimezoneQuery &&
-                  matchesResolvedTimezone &&
-                  (getZoneCodes(clock.timezone, now).has(resolvedTimezoneQuery.label) ||
-                    /^UTC[+-]/.test(resolvedTimezoneQuery.label))
-                    ? resolvedTimezoneQuery.label
-                    : undefined
-                }
+                timezoneCodeOverride={timezoneCodeOverride}
                 timezoneSubheaderOverride={timezoneSubheaderOverride}
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
@@ -425,32 +457,6 @@ export function ClockWall({
       </SortableContext>
     </DndContext>
   );
-}
-
-function clockMatchesSearch(
-  clock: Clock,
-  now: Date,
-  query: string,
-  resolvedTimezoneQuery: { offset: number; label: string } | null,
-) {
-  const dateTime = getClockDateTime(now, clock.timezone);
-  const haystack = [
-    clock.locationName,
-    clock.secondaryName,
-    clock.timezone,
-    getTimezoneCode(dateTime),
-    dateTime.offsetNameLong,
-    getClockPrimaryName(clock, dateTime),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (haystack.includes(query)) {
-    return true;
-  }
-
-  return resolvedTimezoneQuery !== null && getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset);
 }
 
 type SortableClockTileProps = {

@@ -1,11 +1,17 @@
 import { DateTime } from "luxon";
 import { useEffect, useRef, useState } from "react";
 import {
-  getOffsetCode,
+  anchorTimezoneIds,
   getTimezoneLabel,
   searchTimezones,
   type TimezoneOption,
 } from "../data/timezones";
+import {
+  formatRelativeTimezoneCode,
+  getRelativeTimezoneDeltas,
+  getTimezoneCode,
+  resolveTimezoneQuery,
+} from "../lib/time";
 
 type TimezonePickerProps = {
   id: string;
@@ -29,6 +35,16 @@ export function TimezonePicker({
   const listRef = useRef<HTMLDivElement>(null);
   const now = DateTime.local();
   const results = focused ? searchTimezones(search, now, 12) : [];
+  const resolvedTimezoneQuery = resolveTimezoneQuery(search.trim().toLowerCase());
+  const relativeDeltas = resolvedTimezoneQuery
+    ? getRelativeTimezoneDeltas(
+        results.map((option) => option.timezone),
+        now.toJSDate(),
+        resolvedTimezoneQuery.offset,
+        anchorTimezoneIds,
+        resolvedTimezoneQuery.label,
+      )
+    : null;
   const listId = `${id}-listbox`;
 
   useEffect(() => {
@@ -136,8 +152,10 @@ export function TimezonePicker({
           {results.length ? (
             results.map((option, index) => {
               const zoned = now.setZone(option.timezone);
-              const offset = getOffsetCode(zoned);
-              const subtext = `${offset}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
+              const code = resolvedTimezoneQuery && relativeDeltas
+                ? formatRelativeTimezoneCode(resolvedTimezoneQuery.label, relativeDeltas[index])
+                : getTimezoneCode(zoned);
+              const subtext = `${code}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
               return (
                 <button
                   id={`${listId}-${index}`}
