@@ -7,9 +7,9 @@
   text-rendering: optimizeLegibility;
   --light-bg: #f7f6f2;
   --digital-glow: #17c1a0;
-  --bg-pattern-opacity: 0.22;
+  --bg-pattern-opacity: 0.13;
   --bg-pattern-size: 32px;
-  --bg-pattern-tint: 40%;
+  --bg-pattern-tint: 55%;
   --bg-motion: 10s;
   --control-bg: rgba(255, 255, 255, 0.78);
   --control-surface: #fffdf8;
@@ -19,6 +19,12 @@
   --accent: #26231e;
   --accent-contrast: #fffaf1;
   --availability-ink: rgb(39, 115, 95);
+  /* Kept here rather than only as var() fallbacks so both tunable groups are
+     visible in one place. If the band changes, the cap-trim constants in
+     AnalogClock.tsx must change with it or the arc ends overshoot their ticks. */
+  --availability-band: 9px;
+  --availability-band-outline: 2.5px;
+  --availability-opacity: 0.34;
 }
 
 :root[data-theme="dark-digital"] {
