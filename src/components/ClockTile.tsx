@@ -20,6 +20,7 @@ type ClockTileProps = {
   now: Date;
   theme: ThemeMode;
   timezoneCodeOverride?: string;
+  timezoneSubheaderOverride?: string;
   displaySeconds: boolean;
   primaryTimezone: string;
   awakeHours: { start: string; end: string };
@@ -39,6 +40,7 @@ export function ClockTile({
   now,
   theme,
   timezoneCodeOverride,
+  timezoneSubheaderOverride,
   displaySeconds,
   primaryTimezone,
   awakeHours,
@@ -105,7 +107,7 @@ export function ClockTile({
           ) : null}
         </div>
         <div className="clock-tile__footer">
-          <span>{clock.secondaryName || clock.timezone}</span>
+          <span>{timezoneSubheaderOverride ?? (clock.secondaryName || clock.timezone)}</span>
           <div className="clock-status-stack">
             <span>{dayStatus}</span>
           </div>
@@ -136,7 +138,7 @@ export function ClockTile({
               ) : null}
             </span>
           </p>
-          <p>{clock.secondaryName || clock.timezone}</p>
+          <p>{timezoneSubheaderOverride ?? (clock.secondaryName || clock.timezone)}</p>
           <span>{dayStatus} · {dayPeriod}</span>
         </div>
       </article>

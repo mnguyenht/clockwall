@@ -185,6 +185,10 @@ export function getTimezoneLabel(timezone: string) {
   return optionByTimezone.get(timezone)?.label ?? timezone.split("/").pop()?.replaceAll("_", " ") ?? timezone;
 }
 
+export function getTimezoneCountryLabel(timezone: string): string {
+  return optionByTimezone.get(timezone)?.countryLabel ?? "";
+}
+
 export function isSupportedTimezone(timezone: string) {
   try {
     return DateTime.now().setZone(timezone).isValid;

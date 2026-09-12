@@ -213,7 +213,23 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    Object.entries(appStyle).forEach(([key, value]) => {
+      if (value !== undefined) {
+        document.documentElement.style.setProperty(key, String(value));
+      }
+    });
+
+    // Controls -- the switch, the active segment, hover tints, focus and selection
+    // rings, the Create button -- all read --accent, which is otherwise a fixed teal.
+    // In dark that left every control ignoring the chosen glow while the surfaces
+    // around them followed it. Removing it in light matters: setProperty does not
+    // undo itself, so a dark glow would stay overriding the light token.
+    if (theme === "dark-digital") {
+      document.documentElement.style.setProperty("--accent", state.settings.darkGlow);
+    } else {
+      document.documentElement.style.removeProperty("--accent");
+    }
+  }, [theme, state.settings.lightBackground, state.settings.darkGlow, digitalContrast.time, digitalContrast.indicator]);
 
   useEffect(() => {
     if (!toast) {
@@ -229,7 +245,6 @@ export function App() {
       <div
         className={`app-shell app-shell--${theme}`}
         data-bg="dots"
-        style={appStyle}
         onPointerDown={(event) => {
           if (event.target === event.currentTarget && selectedClockIds.length > 0) {
             setSelectedClockIds([]);
@@ -356,7 +371,7 @@ export function App() {
         }}
       />
       {createPortal(
-        <div className={`app-toast-layer app-shell--${theme}`} style={appStyle}>
+        <div className={`app-toast-layer app-shell--${theme}`}>
           <AnimatePresence>
             {toast ? (
               <m.div

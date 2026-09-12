@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { getTimezoneCountryLabel } from "../data/timezones";
 import type { Board, Clock, ThemeMode } from "../types";
 import { ClockTile } from "./ClockTile";
 import {
@@ -372,6 +373,16 @@ export function ClockWall({
         >
           {visibleClocks.map((clock) => {
             const clockIndex = board.clocks.findIndex((candidate) => candidate.id === clock.id);
+            const matchesResolvedTimezone = resolvedTimezoneQuery
+              ? getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset)
+              : false;
+            // countryLabel carries a " +4" suffix meaning "and 4 more countries",
+            // which reads fine in the timezone picker but not here: sitting beside a
+            // code like UTC+7 it looks like part of an offset. Show the primary
+            // country only. The picker keeps the full label.
+            const timezoneSubheaderOverride = matchesResolvedTimezone
+              ? getTimezoneCountryLabel(clock.timezone).replace(/\s\+\d+$/, "") || undefined
+              : undefined;
             return (
             <SortableClockTile
               key={clock.id}
@@ -385,10 +396,11 @@ export function ClockWall({
                 now={now}
                 theme={theme}
                 timezoneCodeOverride={
-                  resolvedTimezoneQuery && getZoneOffsets(clock.timezone, now).has(resolvedTimezoneQuery.offset)
+                  resolvedTimezoneQuery && matchesResolvedTimezone
                     ? resolvedTimezoneQuery.label
                     : undefined
                 }
+                timezoneSubheaderOverride={timezoneSubheaderOverride}
                 displaySeconds={displaySeconds}
                 primaryTimezone={primaryTimezone}
                 awakeHours={awakeHours}
