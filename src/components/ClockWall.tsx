@@ -20,7 +20,13 @@ import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Board, Clock, ThemeMode } from "../types";
 import { ClockTile } from "./ClockTile";
-import { getClockDateTime, getClockPrimaryName, getTimezoneCode } from "../lib/time";
+import {
+  getClockDateTime,
+  getClockPrimaryName,
+  getTimezoneCode,
+  getZoneOffsets,
+  parseTimezoneQuery,
+} from "../lib/time";
 
 type ClockWallProps = {
   board: Board;
@@ -412,7 +418,12 @@ function clockMatchesSearch(clock: Clock, now: Date, query: string) {
     .join(" ")
     .toLowerCase();
 
-  return haystack.includes(query);
+  if (haystack.includes(query)) {
+    return true;
+  }
+
+  const offset = parseTimezoneQuery(query);
+  return offset !== null && getZoneOffsets(clock.timezone, now).has(offset);
 }
 
 type SortableClockTileProps = {

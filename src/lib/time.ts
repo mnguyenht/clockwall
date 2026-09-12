@@ -1,6 +1,106 @@
 import { DateTime } from "luxon";
 import type { Clock, ClockNameMode } from "../types";
 
+// CST is ambiguous; prefer US Central (-360) over China Standard (+480).
+// IST is ambiguous; prefer India (+330) over Ireland (+60) and Israel (+120).
+const TIMEZONE_ABBREVIATION_OFFSETS: Readonly<Record<string, number>> = {
+  UTC: 0,
+  GMT: 0,
+  Z: 0,
+  WET: 0,
+  WEST: 60,
+  BST: 60,
+  IST: 330,
+  CET: 60,
+  CEST: 120,
+  EET: 120,
+  EEST: 180,
+  MSK: 180,
+  WAT: 60,
+  SAST: 120,
+  EAT: 180,
+  GST: 240,
+  PKT: 300,
+  NPT: 345,
+  ICT: 420,
+  WIB: 420,
+  HKT: 480,
+  SGT: 480,
+  AWST: 480,
+  JST: 540,
+  KST: 540,
+  ACST: 570,
+  AEST: 600,
+  AEDT: 660,
+  NZST: 720,
+  NZDT: 780,
+  EST: -300,
+  EDT: -240,
+  CST: -360,
+  CDT: -300,
+  MST: -420,
+  MDT: -360,
+  PST: -480,
+  PDT: -420,
+  AKST: -540,
+  AKDT: -480,
+  HST: -600,
+  AST: -240,
+  ADT: -180,
+  NST: -210,
+  BRT: -180,
+  ART: -180,
+  CLT: -240,
+  COT: -300,
+  PET: -300,
+  VET: -240,
+};
+
+const zoneOffsetsByYear = new Map<string, Set<number>>();
+
+export function parseTimezoneQuery(query: string): number | null {
+  const normalized = query.trim().toUpperCase();
+  const abbreviationOffset = TIMEZONE_ABBREVIATION_OFFSETS[normalized];
+  if (abbreviationOffset !== undefined) {
+    return abbreviationOffset;
+  }
+
+  const match = normalized.match(/^(?:UTC|GMT)?([+-])(\d{1,2})(?::?(\d{2}))?$/);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[2]);
+  const minutes = Number(match[3] ?? "0");
+  if (hours > 23 || minutes > 59) {
+    return null;
+  }
+
+  const offset = hours * 60 + minutes;
+  return match[1] === "-" ? -offset : offset;
+}
+
+export function getZoneOffsets(timezone: string, now: Date): Set<number> {
+  const year = DateTime.fromJSDate(now).year;
+  const cacheKey = `${timezone}:${year}`;
+  const cached = zoneOffsetsByYear.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const samples = [
+    DateTime.fromObject({ year, month: 1, day: 15 }, { zone: timezone }),
+    DateTime.fromObject({ year, month: 7, day: 15 }, { zone: timezone }),
+    DateTime.fromJSDate(now).setZone(timezone),
+  ];
+  const offsets = samples.every((sample) => sample.isValid)
+    ? new Set(samples.map((sample) => sample.offset))
+    : new Set<number>();
+
+  zoneOffsetsByYear.set(cacheKey, offsets);
+  return offsets;
+}
+
 export function getClockDateTime(now: Date, timezone: string) {
   return DateTime.fromJSDate(now).setZone(timezone);
 }

@@ -1554,10 +1554,16 @@ select {
   animation: overlay-fade-out 120ms ease-in;
 }
 
+/* The overlay deliberately does NOT blur in dark mode. It used to darken 52% and
+   blur 10px, and the panel then blurred another 30px on top -- together that wiped
+   out the wall behind, so the dialog read as a blurry slab rather than glass over
+   something. The overlay now only dims; the panel alone does the frosting, so the
+   clocks stay recognisable through it. backdrop-filter must be cleared explicitly,
+   or the base .dialog-overlay rule's blur(8px) still applies. */
 :root[data-theme="dark-digital"] .dialog-overlay {
-  background: rgba(2, 6, 8, 0.52);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(2, 6, 8, 0.28);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .dialog-content {
@@ -1596,9 +1602,9 @@ select {
 }
 
 :root[data-theme="dark-digital"] .dialog-content {
-  background: color-mix(in srgb, #0b1215 70%, transparent);
-  backdrop-filter: blur(30px) saturate(185%);
-  -webkit-backdrop-filter: blur(30px) saturate(185%);
+  background: color-mix(in srgb, #0b1215 58%, transparent);
+  backdrop-filter: blur(22px) saturate(190%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
   border-color: color-mix(in srgb, var(--digital-glow) 26%, rgba(255, 255, 255, 0.14));
   box-shadow:
     0 28px 80px rgba(0, 0, 0, 0.55),
