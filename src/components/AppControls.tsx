@@ -14,6 +14,7 @@ import { Switch } from "./ui/switch";
 import { BoardMenu } from "./BoardMenu";
 import { GlowPaletteControl } from "./GlowPaletteControl";
 import { NameModeGroup } from "./NameModeGroup";
+import { SortMenu, type ClockSortDirection, type ClockSortKey } from "./SortMenu";
 import { TimeRangeField } from "./TimeRangeField";
 import { TimezonePicker } from "./TimezonePicker";
 
@@ -41,6 +42,9 @@ type AppControlsProps = {
   onAwakeHoursChange: (start: string, end: string) => void;
   onDefaultNameModeChange: (nameMode: ClockNameMode) => void;
   onAddClock: () => void;
+  canRevertSort: boolean;
+  onSortClocks: (key: ClockSortKey, direction: ClockSortDirection) => void;
+  onRevertSort: () => void;
   onSearchOpenChange: (open: boolean) => void;
   onSearchQueryChange: (query: string) => void;
   onExportBoard: () => BoardDeckExport;
@@ -70,6 +74,9 @@ export function AppControls({
   onAwakeHoursChange,
   onDefaultNameModeChange,
   onAddClock,
+  canRevertSort,
+  onSortClocks,
+  onRevertSort,
   onSearchOpenChange,
   onSearchQueryChange,
   onExportBoard,
@@ -384,6 +391,8 @@ export function AppControls({
       >
         <Plus size={30} strokeWidth={2.2} />
       </Button>
+
+      <SortMenu canRevert={canRevertSort} onSort={onSortClocks} onRevert={onRevertSort} />
     </>
   );
 }

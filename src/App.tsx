@@ -5,10 +5,11 @@ import { AppControls } from "./components/AppControls";
 import { ClockFormDialog } from "./components/ClockFormDialog";
 import { ClockWall } from "./components/ClockWall";
 import { SelectionBar } from "./components/SelectionBar";
+import type { ClockSortDirection, ClockSortKey } from "./components/SortMenu";
 import { getTimezoneLabel } from "./data/timezones";
 import { useAppState } from "./hooks/useAppState";
 import { useNow } from "./hooks/useNow";
-import { getAvailabilityDurationMinutes } from './lib/time';
+import { getAvailabilityDurationMinutes, getClockDateTime } from './lib/time';
 import type { Clock } from "./types";
 
 // Pre-2026-09 contrast palette kept for one-line revert.
@@ -48,6 +49,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState<{ title: string; message: ReactNode } | null>(null);
+  const [preSortClockIds, setPreSortClockIds] = useState<string[] | null>(null);
   const {
     state,
     activeBoard,
@@ -96,6 +98,59 @@ export function App() {
     );
   }
 
+  function sortClocks(key: ClockSortKey, direction: ClockSortDirection) {
+    if (preSortClockIds === null) {
+      setPreSortClockIds(activeBoard.clocks.map((clock) => clock.id));
+    }
+
+    const sortedUnpinnedClocks = activeBoard.clocks.filter((clock) => !clock.pinned);
+    sortedUnpinnedClocks.sort((left, right) => {
+      if (key === "secondaryName") {
+        if (!left.secondaryName && !right.secondaryName) {
+          return 0;
+        }
+        if (!left.secondaryName) {
+          return 1;
+        }
+        if (!right.secondaryName) {
+          return -1;
+        }
+
+        const comparison = left.secondaryName.localeCompare(right.secondaryName, undefined, { sensitivity: "base" });
+        return direction === "ascending" ? comparison : -comparison;
+      }
+
+      if (key === "locationName") {
+        const comparison = left.locationName.localeCompare(right.locationName, undefined, { sensitivity: "base" });
+        return direction === "ascending" ? comparison : -comparison;
+      }
+
+      const leftDateTime = getClockDateTime(now, left.timezone);
+      const rightDateTime = getClockDateTime(now, right.timezone);
+      const comparison = leftDateTime.hour * 60 + leftDateTime.minute - (rightDateTime.hour * 60 + rightDateTime.minute);
+      return direction === "ascending" ? comparison : -comparison;
+    });
+
+    const nextClockIds = activeBoard.clocks.map((clock) =>
+      clock.pinned ? clock.id : (sortedUnpinnedClocks.shift()?.id ?? clock.id),
+    );
+    reorderClocks(nextClockIds);
+  }
+
+  function revertSort() {
+    if (preSortClockIds === null) {
+      return;
+    }
+
+    reorderClocks(preSortClockIds);
+    setPreSortClockIds(null);
+  }
+
+  function manuallyReorderClocks(clockIds: string[]) {
+    setPreSortClockIds(null);
+    reorderClocks(clockIds);
+  }
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
@@ -128,7 +183,12 @@ export function App() {
 
   useEffect(() => {
     setSelectedClockIds([]);
+    setPreSortClockIds(null);
   }, [activeBoard.id]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     if (!toast) {
@@ -171,6 +231,9 @@ export function App() {
         onAwakeHoursChange={setAwakeHours}
         onDefaultNameModeChange={setDefaultNameMode}
         onAddClock={openAddClock}
+        canRevertSort={preSortClockIds !== null}
+        onSortClocks={sortClocks}
+        onRevertSort={revertSort}
         searchQuery={searchQuery}
         searchOpen={searchOpen}
         onSearchOpenChange={setSearchOpen}
@@ -204,7 +267,7 @@ export function App() {
         onDuplicateClock={duplicateClock}
         onDeleteClock={deleteClock}
         onToggleClockPinned={toggleClockPinned}
-        onReorderClocks={reorderClocks}
+        onReorderClocks={manuallyReorderClocks}
         onMoveClockToPosition={moveClockToPosition}
         selectedClockIds={selectedClockIds}
         onToggleClockSelection={toggleClockSelection}
