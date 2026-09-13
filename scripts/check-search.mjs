@@ -16,6 +16,7 @@ registerHooks({
 const {
   clockMatchesSearch,
   formatRelativeTimezoneCode,
+  getClockPrimaryName,
   getRelativeTimezoneDeltas,
   getTimezoneCode,
   resolveTimezoneQuery,
@@ -198,5 +199,12 @@ const cetDeltas = getRelativeTimezoneDeltas(
   cet.label,
 );
 assert.ok(cetDeltas.some((delta) => delta !== 0));
+
+const chicagoNow = DateTime.fromJSDate(now).setZone("America/Chicago");
+const pinnedChicago = { ...makeClock("America/Chicago"), nameMode: "location-code", timezoneCode: "CST" };
+assert.equal(getClockPrimaryName(pinnedChicago, chicagoNow), "Chicago CST");
+assert.equal(getClockPrimaryName({ ...pinnedChicago, nameMode: "code" }, chicagoNow), "CST");
+assert.equal(getClockPrimaryName(pinnedChicago, chicagoNow, "EST-1"), "Chicago EST-1");
+assert.equal(getClockPrimaryName({ ...makeClock("America/Chicago"), nameMode: "location-code" }, chicagoNow), "Chicago CDT");
 
 console.log("Search smoke checks passed.");

@@ -56,7 +56,7 @@ export function ClockTile({
 }: ClockTileProps) {
   const dateTime = getClockDateTime(now, clock.timezone);
   const primaryName = getClockPrimaryName(clock, dateTime, timezoneCodeOverride);
-  const timezoneCode = timezoneCodeOverride ?? getTimezoneCode(dateTime);
+  const timezoneCode = timezoneCodeOverride ?? clock.timezoneCode ?? getTimezoneCode(dateTime);
   const primaryDateTime = getClockDateTime(now, primaryTimezone);
   const dayStatus = getDayStatus(dateTime);
   const dayPeriod: "AM" | "PM" = dateTime.hour < 12 ? "AM" : "PM";

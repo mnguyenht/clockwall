@@ -16,7 +16,7 @@ import {
 type TimezonePickerProps = {
   id: string;
   value: string;
-  onChange: (timezone: string) => void;
+  onChange: (timezone: string, timezoneCode?: string) => void;
   placeholder?: string;
   className?: string;
 };
@@ -45,6 +45,12 @@ export function TimezonePicker({
         resolvedTimezoneQuery.label,
       )
     : null;
+  const optionCodes = results.map((option, index) => {
+    const zoned = now.setZone(option.timezone);
+    return resolvedTimezoneQuery && relativeDeltas
+      ? formatRelativeTimezoneCode(resolvedTimezoneQuery.label, relativeDeltas[index])
+      : getTimezoneCode(zoned);
+  });
   const listId = `${id}-listbox`;
 
   useEffect(() => {
@@ -80,10 +86,10 @@ export function TimezonePicker({
     }
   }, [focused, highlightedIndex, results.length]);
 
-  function select(option: TimezoneOption) {
+  function select(option: TimezoneOption, timezoneCode?: string) {
     internalValue.current = option.timezone;
     setSearch(option.label);
-    onChange(option.timezone);
+    onChange(option.timezone, timezoneCode);
     setFocused(false);
   }
 
@@ -118,7 +124,11 @@ export function TimezonePicker({
           } else if (event.key === "Enter" && focused && results[highlightedIndex]) {
             // Prevent the surrounding form from submitting when choosing a suggestion.
             event.preventDefault();
-            select(results[highlightedIndex]);
+            // Only a code search pins its code; a plain search keeps the live, DST-following code.
+            select(
+              results[highlightedIndex],
+              resolvedTimezoneQuery ? optionCodes[highlightedIndex] : undefined,
+            );
           } else if (event.key === "Escape") {
             // Radix's Dialog listens for Escape on document in the capture phase, so it always
             // wins and closes the dialog. Just keep local state consistent; don't fight it.
@@ -152,10 +162,7 @@ export function TimezonePicker({
           {results.length ? (
             results.map((option, index) => {
               const zoned = now.setZone(option.timezone);
-              const code = resolvedTimezoneQuery && relativeDeltas
-                ? formatRelativeTimezoneCode(resolvedTimezoneQuery.label, relativeDeltas[index])
-                : getTimezoneCode(zoned);
-              const subtext = `${code}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
+              const subtext = `${optionCodes[index]}${option.countryLabel ? ` · ${option.countryLabel}` : ""}`;
               return (
                 <button
                   id={`${listId}-${index}`}
@@ -167,7 +174,9 @@ export function TimezonePicker({
                   title={option.timezone}
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={() => setHighlightedIndex(index)}
-                  onClick={() => select(option)}
+                  onClick={() =>
+                    select(option, resolvedTimezoneQuery ? optionCodes[index] : undefined)
+                  }
                 >
                   <span>
                     <strong>{option.label}</strong>

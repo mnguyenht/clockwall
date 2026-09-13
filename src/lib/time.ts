@@ -400,7 +400,7 @@ export function getTimezoneCode(dateTime: DateTime) {
 }
 
 export function getClockPrimaryName(clock: Clock, dateTime: DateTime, timezoneCodeOverride?: string) {
-  const code = timezoneCodeOverride ?? getTimezoneCode(dateTime);
+  const code = timezoneCodeOverride ?? clock.timezoneCode ?? getTimezoneCode(dateTime);
   const modes: Record<ClockNameMode, string> = {
     location: clock.locationName,
     "location-code": `${clock.locationName} ${code}`,

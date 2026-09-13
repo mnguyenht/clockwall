@@ -352,6 +352,7 @@ export function App() {
             locationName: getTimezoneLabel(values.timezone),
             secondaryName: values.secondaryName || undefined,
             nameMode: values.nameMode,
+            timezoneCode: values.timezoneCode,
             workHours,
           };
 

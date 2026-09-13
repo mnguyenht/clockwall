@@ -11,6 +11,7 @@ import { Switch } from "./ui/switch";
 
 type ClockFormValues = {
   timezone: string;
+  timezoneCode?: string;
   secondaryName: string;
   nameMode: ClockNameMode;
   workHoursEnabled: boolean;
@@ -30,6 +31,7 @@ type ClockFormDialogProps = {
 function getInitialValues(clock: Clock | null | undefined, defaultNameMode: ClockNameMode): ClockFormValues {
   return {
     timezone: clock?.timezone ?? "",
+    timezoneCode: clock?.timezoneCode,
     secondaryName: clock?.secondaryName ?? "",
     nameMode: clock?.nameMode ?? defaultNameMode,
     workHoursEnabled: clock?.workHours?.enabled ?? false,
@@ -196,7 +198,9 @@ export function ClockFormDialog({ open, clock, defaultNameMode, onOpenChange, on
             <TimezonePicker
               id="timezone-search"
               value={values.timezone}
-              onChange={(timezone) => updateValue("timezone", timezone)}
+              onChange={(timezone, timezoneCode) =>
+                setValues((current) => ({ ...current, timezone, timezoneCode }))
+              }
             />
           </div>
 
@@ -206,6 +210,7 @@ export function ClockFormDialog({ open, clock, defaultNameMode, onOpenChange, on
               value={values.nameMode}
               onChange={(nameMode) => updateValue("nameMode", nameMode)}
               previewTimezone={values.timezone || undefined}
+              previewCode={values.timezoneCode}
               roomy
             />
           </div>

@@ -8,6 +8,7 @@ export type Clock = {
   locationName: string;
   secondaryName?: string;
   nameMode: ClockNameMode;
+  timezoneCode?: string;
   pinned?: boolean;
   color?: string;
   workHours?: {

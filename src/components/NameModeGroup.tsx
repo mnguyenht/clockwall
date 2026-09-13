@@ -7,15 +7,18 @@ type NameModeGroupProps = {
   value: ClockNameMode;
   onChange: (value: ClockNameMode) => void;
   previewTimezone?: string;
+  previewCode?: string;
   roomy?: boolean;
 };
 
 const nameModes = ["location", "location-code", "code"] as const;
 
-export function NameModeGroup({ value, onChange, previewTimezone, roomy = false }: NameModeGroupProps) {
+export function NameModeGroup({ value, onChange, previewTimezone, previewCode, roomy = false }: NameModeGroupProps) {
   const hasTimezone = Boolean(previewTimezone);
   const locationPreview = previewTimezone ? getTimezoneLabel(previewTimezone) : "Location";
-  const codePreview = previewTimezone ? getTimezoneCode(DateTime.local().setZone(previewTimezone)) : "Code";
+  const codePreview = previewTimezone
+    ? (previewCode ?? getTimezoneCode(DateTime.local().setZone(previewTimezone)))
+    : "Code";
   const labels: Record<ClockNameMode, string> = {
     location: locationPreview,
     "location-code": hasTimezone ? `${locationPreview} ${codePreview}` : "Location + Code",

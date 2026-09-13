@@ -84,6 +84,7 @@ function sanitizeImportedClock(value: unknown): Clock | null {
     locationName: clock.locationName,
     secondaryName: typeof clock.secondaryName === "string" ? clock.secondaryName : undefined,
     nameMode: clock.nameMode,
+    timezoneCode: typeof clock.timezoneCode === "string" ? clock.timezoneCode : undefined,
     pinned: typeof clock.pinned === "boolean" ? clock.pinned : undefined,
     color: typeof clock.color === "string" ? clock.color : undefined,
     workHours,
