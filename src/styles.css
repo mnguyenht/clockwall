@@ -7,7 +7,7 @@
   text-rendering: optimizeLegibility;
   --light-bg: #f7f6f2;
   --digital-glow: #17c1a0;
-  --bg-pattern-opacity: 0.16;
+  --bg-pattern-opacity: 0.21;
   --bg-pattern-size: 32px;
   --bg-pattern-tint: 55%;
   --bg-motion: 10s;
@@ -1927,7 +1927,7 @@ select {
   border: 1px solid var(--control-border);
   border-radius: 8px;
   background: var(--control-surface);
-  padding: 0 8px;
+  padding: 0;
 }
 
 .time-range-field__separator {
@@ -1936,14 +1936,16 @@ select {
 }
 
 .time-range-field__input {
-  width: 2.2ch;
+  /* ponytail: inputs fill the box so the whole field is clickable, not just the glyphs */
+  flex: 1 1 0;
+  align-self: stretch;
   min-width: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
   outline: none;
-  padding: 0;
+  padding: 0 8px;
   text-align: center;
 }
 
